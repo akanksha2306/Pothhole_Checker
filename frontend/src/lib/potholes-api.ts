@@ -1,6 +1,7 @@
 import {
   CreateReportResponseSchema,
-  RepairSchema,
+  NearbyAreaResponseSchema,
+  PotholeUpvoteToggleResponseSchema,
   RepairVerificationRequestSchema,
   CreateReportSchema,
   ListReportsQuerySchema,
@@ -10,12 +11,14 @@ import {
   PotholeListQuerySchema,
   PotholeListResponseSchema,
   PotholeStatusUpdateSchema,
+  RepairSchema,
   ReportsPageSchema,
   type CreateReportInput,
   type CreateReportResponse,
   type NearbyPotholeResponse,
   type PotholeDetail,
   type PotholeListResponse,
+  type NearbyAreaResponse,
   type PotholeStatusUpdateInput,
   type Repair,
   type RepairVerdict,
@@ -125,6 +128,30 @@ export class PotholesApi {
     return this.client.get<Repair[]>(
       `/potholes/${encodeURIComponent(idOrHumanCode)}/repairs`,
       (value) => RepairSchema.array().parse(value),
+    )
+  }
+
+  /**
+   * Everything within ~2km of a point (backend radius), nearest first — used by
+   * the report flow's "already reported here?" area panel. `total` is the full
+   * count inside the radius; `items` is capped server-side.
+   */
+  nearbyArea(latitude: number, longitude: number): Promise<NearbyAreaResponse> {
+    const params = new URLSearchParams({
+      latitude: String(latitude),
+      longitude: String(longitude),
+    })
+    return this.client.get<NearbyAreaResponse>(`/potholes/nearby-area?${params.toString()}`, (value) =>
+      NearbyAreaResponseSchema.parse(value),
+    )
+  }
+
+  /** Toggle the signed-in user's upvote. Returns the new state + count. */
+  toggleUpvote(idOrHumanCode: string): Promise<{ upvoted: boolean; upvoteCount: number }> {
+    return this.client.post<{ upvoted: boolean; upvoteCount: number }>(
+      `/potholes/${encodeURIComponent(idOrHumanCode)}/upvote`,
+      undefined,
+      (value) => PotholeUpvoteToggleResponseSchema.parse(value),
     )
   }
 

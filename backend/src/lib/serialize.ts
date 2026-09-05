@@ -101,7 +101,7 @@ export function toPotholeListItem(pothole: PotholeWithUpvoteCount): PotholeListI
   };
 }
 
-export function toPotholeAreaItem(pothole: PotholeWithUpvoteCount, distanceMeters: number): PotholeAreaItem {
+export function toPotholeAreaItem(pothole: PotholeWithUpvoteCount, distanceMeters: number, myUpvote = false): PotholeAreaItem {
   return {
     id: pothole.id,
     humanCode: pothole.humanCode,
@@ -113,6 +113,7 @@ export function toPotholeAreaItem(pothole: PotholeWithUpvoteCount, distanceMeter
     distanceMeters,
     reportCount: pothole.reportCount,
     upvoteCount: pothole._count?.upvotes ?? 0,
+    myUpvote,
   };
 }
 

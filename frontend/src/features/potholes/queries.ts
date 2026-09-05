@@ -8,6 +8,8 @@ export const potholeKeys = {
   list: (filter: PotholeFilterKey, sort: PotholeSort) => ['potholes', 'list', filter, sort] as const,
   detail: (idOrHumanCode: string) => ['potholes', 'detail', idOrHumanCode] as const,
   nearby: (latitude: number, longitude: number) => ['potholes', 'nearby', latitude, longitude] as const,
+  nearbyArea: (latitude: number, longitude: number) =>
+    ['potholes', 'nearby-area', latitude, longitude] as const,
 }
 
 export const reportKeys = {
@@ -60,6 +62,16 @@ export function useNearbyPothole(location: { latitude: number; longitude: number
   })
 }
 
+/** Area sweep for the report flow's "already reported here?" panel. */
+export function useNearbyArea(location: { latitude: number; longitude: number } | null) {
+  return useQuery({
+    queryKey: potholeKeys.nearbyArea(location?.latitude ?? 0, location?.longitude ?? 0),
+    queryFn: () => potholesApi.nearbyArea(location!.latitude, location!.longitude),
+    enabled: location !== null,
+    staleTime: 15_000,
+  })
+}
+
 export function useMyReports(limit = 50) {
   return useInfiniteQuery({
     queryKey: [...reportKeys.mine, limit],
@@ -78,6 +90,17 @@ export function useCreateReport() {
       // detail caches all refresh.
       void queryClient.invalidateQueries({ queryKey: potholeKeys.all })
       void queryClient.invalidateQueries({ queryKey: reportKeys.all })
+    },
+  })
+}
+
+/** Upvote toggle; pothole counts/status feeds refresh from the server truth. */
+export function useToggleUpvote() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (idOrHumanCode: string) => potholesApi.toggleUpvote(idOrHumanCode),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: potholeKeys.all })
     },
   })
 }

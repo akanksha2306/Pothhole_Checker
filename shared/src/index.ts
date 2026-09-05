@@ -308,7 +308,8 @@ export const NearbyAreaQuerySchema = z.object({
 });
 export type NearbyAreaQuery = z.infer<typeof NearbyAreaQuerySchema>;
 
-/** One pothole within the area radius, with its distance from the point. */
+/** One pothole within the area radius, with its distance from the point.
+ *  Viewer-scoped: `myUpvote` reflects the requesting user. */
 export const PotholeAreaItemSchema = z.object({
   id: z.string().min(1),
   humanCode: z.string().min(1),
@@ -320,6 +321,7 @@ export const PotholeAreaItemSchema = z.object({
   distanceMeters: DistanceMetersSchema,
   reportCount: z.number().int().nonnegative(),
   upvoteCount: z.number().int().nonnegative(),
+  myUpvote: z.boolean(),
 });
 export type PotholeAreaItem = z.infer<typeof PotholeAreaItemSchema>;
 

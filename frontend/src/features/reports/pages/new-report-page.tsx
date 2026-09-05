@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router'
 import type { z } from 'zod'
 import type { Pothole } from 'shared'
 
+import { NearbyAreaPanel } from '@/features/reports/components/nearby-area-panel'
 import { PinDropSheet } from '@/features/reports/components/pin-drop-sheet'
 
 import { StatusBadge } from '@/components/molecules/status-badge'
@@ -174,6 +175,16 @@ export function NewReportPage() {
             pothole={nearbyPothole}
             distanceMeters={nearbyQuery.data?.distanceMeters}
             onAnswer={setSamePothole}
+          />
+        )}
+
+        {location && (
+          // Keyed by position so the upvote state resets with every new fix,
+          // EXIF read or pin drop.
+          <NearbyAreaPanel
+            key={`${location.latitude.toFixed(5)},${location.longitude.toFixed(5)}`}
+            location={location}
+            samePotholeCode={nearbyPothole?.humanCode ?? null}
           />
         )}
 

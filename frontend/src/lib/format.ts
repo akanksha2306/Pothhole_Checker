@@ -56,3 +56,11 @@ export function formatRelativeDay(isoTimestamp: string, now: Date = new Date()):
   }
   return formatDate(isoTimestamp)
 }
+
+/** Compact distance for dense lists: "300 m" / "1.2 km" (no "away" suffix). */
+export function formatDistanceShort(meters: number): string {
+  if (meters < 1_000) {
+    return `${Math.round(meters)} m`
+  }
+  return `${(meters / 1_000).toFixed(1)} km`
+}

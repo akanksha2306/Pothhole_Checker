@@ -108,8 +108,9 @@ export class PotholeService {
   /**
    * "N potholes within 2 km": everything inside AREA_RADIUS_M, nearest first,
    * capped at AREA_LIST_LIMIT items while `total` reports the full count.
+   * Items are viewer-scoped (`myUpvote`) via one query over the returned page.
    */
-  async listWithinArea(latitude: number, longitude: number): Promise<{ items: PotholeAreaItem[]; total: number }> {
+  async listWithinArea(latitude: number, longitude: number, viewerId?: string): Promise<{ items: PotholeAreaItem[]; total: number }> {
     const radiusM = env.AREA_RADIUS_M;
     const deltaLat = (radiusM * 1.05) / METERS_PER_DEGREE_LAT;
     const cosLat = Math.max(Math.cos((latitude * Math.PI) / 180), 0.01);
@@ -131,10 +132,20 @@ export class PotholeService {
       .filter((entry) => entry.distance <= radiusM)
       .sort((a, b) => a.distance - b.distance);
 
+    const page = within.slice(0, env.AREA_LIST_LIMIT);
+    const mine = viewerId
+      ? new Set(
+          (
+            await this.db.potholeUpvote.findMany({
+              where: { userId: viewerId, potholeId: { in: page.map((entry) => entry.pothole.id) } },
+              select: { potholeId: true },
+            })
+          ).map((upvote) => upvote.potholeId),
+        )
+      : new Set<string>();
+
     return {
-      items: within
-        .slice(0, env.AREA_LIST_LIMIT)
-        .map((entry) => toPotholeAreaItem(entry.pothole, Math.round(entry.distance * 10) / 10)),
+      items: page.map((entry) => toPotholeAreaItem(entry.pothole, Math.round(entry.distance * 10) / 10, mine.has(entry.pothole.id))),
       total: within.length,
     };
   }

@@ -33,10 +33,10 @@ export const getNearbyPothole: RequestHandler = asyncHandler(async (req, res) =>
 
 /** GET /api/potholes/nearby-area?latitude&longitude — potholes within AREA_RADIUS_M. */
 export const getNearbyArea: RequestHandler = asyncHandler(async (req, res) => {
-  requireUser(req);
+  const viewer = requireUser(req);
   const { latitude, longitude } = validated<NearbyAreaQuery>(req, 'query');
 
-  const area = await potholeService.listWithinArea(latitude, longitude);
+  const area = await potholeService.listWithinArea(latitude, longitude, viewer.sub);
   res.status(200).json(area);
 });
 
