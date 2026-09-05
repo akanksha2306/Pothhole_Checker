@@ -1,0 +1,203 @@
+// PotholeWatch — Prisma schema.
+// Reports roll up into ONE Pothole per physical location; the Pothole owns the
+// status and the timeline (PotholeEvent). A repaired pothole can be reported
+// again: reportCount grows and status returns to REPORTED (event REPORTED_AGAIN),
+// while repairsCount/lastRepairedAt preserve the repair history.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// citizen | repairer | admin — admins and repairers are provisioned via the
+/// ADMIN_EMAILS / REPAIRER_EMAILS allowlists at Google login.
+enum Role {
+  CITIZEN
+  REPAIRER
+  ADMIN
+}
+
+/// Current state of a POTHOLE (not of a report — reports are assertions).
+/// RESOLVED is only reachable through citizen verification of a repair.
+enum ReportStatus {
+  REPORTED
+  ACKNOWLEDGED
+  IN_PROGRESS
+  AWAITING_VERIFICATION
+  RESOLVED
+}
+
+/// Timeline entries on a pothole. REPAIRED is legacy (pre-evidence-chain
+/// backfill rows); the repair flow now emits the REPAIR_* events.
+enum PotholeEventType {
+  REPORTED
+  REPAIRED
+  REPORTED_AGAIN
+  STATUS_CHANGED
+  REPAIR_ASSIGNED
+  REPAIR_SUBMITTED
+  REPAIR_VERIFIED
+  REOPENED
+}
+
+/// Lifecycle of a single repair job on a pothole.
+enum RepairStatus {
+  ASSIGNED
+  IN_PROGRESS
+  AWAITING_VERIFICATION
+  VERIFIED_FIXED
+  REOPENED
+}
+
+/// A resident's verdict on repair evidence.
+enum RepairVerdict {
+  FIXED
+  NOT_FIXED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  /// Google subject (`sub`) claim from the verified ID token.
+  googleId  String   @unique
+  email     String   @unique
+  name      String
+  avatarUrl String?
+  role      Role     @default(CITIZEN)
+  createdAt DateTime @default(now())
+
+  reports PotholeReport[]
+  events  PotholeEvent[]
+  upvotes PotholeUpvote[]
+
+  assignedRepairs     Repair[]             @relation("AssignedRepairs")
+  executedRepairs     Repair[]             @relation("ExecutedRepairs")
+  repairVerifications RepairVerification[]
+}
+
+model Pothole {
+  id              String       @id @default(cuid())
+  /// Public, human-friendly code (BLR-00001) from pothole_human_code_seq.
+  humanCode       String       @unique
+  primaryPhotoKey String
+  /// Decimal(9,6): 6 fractional digits ≈ 0.11 m of precision, enough for a pothole.
+  latitude        Decimal      @db.Decimal(9, 6)
+  longitude       Decimal      @db.Decimal(9, 6)
+  /// Reverse-geocoded from Nominatim when the pothole is created.
+  streetName      String?
+  status          ReportStatus @default(REPORTED)
+  reportCount     Int          @default(1)
+  repairsCount    Int          @default(0)
+  firstReportedAt DateTime     @default(now())
+  lastReportedAt  DateTime     @default(now())
+  lastRepairedAt  DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  reports PotholeReport[]
+  events  PotholeEvent[]
+  repairs Repair[]
+  upvotes PotholeUpvote[]
+
+  @@index([status])
+  @@index([latitude, longitude])
+  @@index([reportCount])
+}
+
+model PotholeReport {
+  id          String  @id @default(cuid())
+  reporterId  String
+  reporter    User    @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  potholeId   String
+  pothole     Pothole @relation(fields: [potholeId], references: [id], onDelete: Cascade)
+  /// Cloudflare R2 object key of the uploaded photo (never a raw public URL).
+  photoKey    String
+  /// Decimal(9,6): 6 fractional digits ≈ 0.11 m of precision, enough for a pothole.
+  latitude    Decimal @db.Decimal(9, 6)
+  longitude   Decimal @db.Decimal(9, 6)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([reporterId])
+  @@index([potholeId])
+  @@index([createdAt])
+}
+
+model PotholeEvent {
+  id        String           @id @default(cuid())
+  potholeId String
+  pothole   Pothole          @relation(fields: [potholeId], references: [id], onDelete: Cascade)
+  type      PotholeEventType
+  byUserId  String?
+  byUser    User?            @relation(fields: [byUserId], references: [id], onDelete: SetNull)
+  at        DateTime         @default(now())
+  note      String?
+
+  @@index([potholeId, at])
+}
+
+/// One repair job. Every evidence item is GPS-bound and time-ordered; RESOLVED
+/// on the pothole is only reachable through citizen verification of this job.
+model Repair {
+  id           String       @id @default(cuid())
+  potholeId    String
+  pothole      Pothole      @relation(fields: [potholeId], references: [id], onDelete: Cascade)
+  assignedById String
+  assignedBy   User         @relation("AssignedRepairs", fields: [assignedById], references: [id], onDelete: Cascade)
+  /// Null until a repairer claims the job at pickup.
+  repairerId   String?
+  repairer     User?        @relation("ExecutedRepairs", fields: [repairerId], references: [id], onDelete: SetNull)
+  status       RepairStatus @default(ASSIGNED)
+  /// "Before" evidence, captured at the pothole.
+  beforePhoto  String?
+  beforeLat    Decimal?     @db.Decimal(9, 6)
+  beforeLng    Decimal?     @db.Decimal(9, 6)
+  beforeAt     DateTime?
+  /// "After" evidence; afterAt must be later than beforeAt.
+  afterPhoto   String?
+  afterLat     Decimal?     @db.Decimal(9, 6)
+  afterLng     Decimal?     @db.Decimal(9, 6)
+  afterAt      DateTime?
+  /// Assignment remark (contractor / crew reference).
+  note         String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  verifications RepairVerification[]
+
+  @@index([potholeId])
+  @@index([status])
+  @@index([repairerId])
+}
+
+/// One resident verdict per repair (unique per user).
+model RepairVerification {
+  id       String        @id @default(cuid())
+  repairId String
+  repair   Repair        @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verdict  RepairVerdict
+  /// The voter's own words, kept with the vote.
+  note     String?
+  at       DateTime      @default(now())
+
+  @@unique([repairId, userId])
+}
+
+/// "This pothole matters to me" — one per person per pothole, undoable.
+model PotholeUpvote {
+  id        String   @id @default(cuid())
+  potholeId String
+  pothole   Pothole  @relation(fields: [potholeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([potholeId, userId])
+  @@index([userId])
+}

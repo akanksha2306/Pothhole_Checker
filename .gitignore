@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+build/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+*.log
+coverage/
+
+# ephemeral verification artifacts
+screenshots/

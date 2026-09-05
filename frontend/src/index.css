@@ -1,0 +1,299 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/*
+ * Civic Flow — dark emerald.
+ *
+ * The app is dark-only: the Material-style surface ramp from the Stitch export
+ * lives directly in :root (no light theme, no .dark override).
+ *
+ *   background        #0e1511   (surface / dim)
+ *   container-lowest  #09100c   (sunken surfaces, inputs)
+ *   container-low     #161d19   (cards)
+ *   container         #1a211d   (popovers, hover tint)
+ *   container-high    #202b24   (accent / pressed)
+ *   outline           #86948a   (strong hairlines, dashed borders)
+ *   outline-variant   #2e3b33   (default borders, input borders)
+ *   primary           #10b981   (emerald — actions, success, brand)
+ *   on-surface        #dde4dd / on-surface-variant #bbcabf
+ */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --color-outline: var(--outline);
+    --color-outline-variant: var(--outline-variant);
+    --color-surface-glass: var(--surface-glass);
+    --color-surface-canvas: var(--surface-canvas);
+    --color-surface-sunken: var(--surface-sunken);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-danger: var(--danger);
+    --radius-sm: calc(var(--radius) * 0.75);
+    --radius-md: var(--radius);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.5);
+    --radius-2xl: calc(var(--radius) * 2);
+    --radius-3xl: calc(var(--radius) * 2.5);
+    --radius-4xl: calc(var(--radius) * 3);
+}
+
+/*
+ * Civic Flow scale: 4px spacing rhythm, 8px standard radius, Inter type scale,
+ * two-step elevation plus an emerald glow for the brand marks.
+ */
+@theme {
+    --text-headline-lg: 2rem;
+    --text-headline-lg--line-height: 2.5rem;
+    --text-headline-lg--font-weight: 700;
+    --text-headline-lg--letter-spacing: -0.02em;
+
+    --text-headline-md: 1.5rem;
+    --text-headline-md--line-height: 2rem;
+    --text-headline-md--font-weight: 600;
+    --text-headline-md--letter-spacing: -0.01em;
+
+    --text-headline-sm: 1.25rem;
+    --text-headline-sm--line-height: 1.75rem;
+    --text-headline-sm--font-weight: 600;
+
+    --text-headline-lg-mobile: 1.75rem;
+    --text-headline-lg-mobile--line-height: 2.125rem;
+    --text-headline-lg-mobile--font-weight: 700;
+
+    --text-body-lg: 1rem;
+    --text-body-lg--line-height: 1.5rem;
+    --text-body-lg--font-weight: 400;
+
+    --text-body-md: 0.875rem;
+    --text-body-md--line-height: 1.25rem;
+    --text-body-md--font-weight: 400;
+
+    --text-label-lg: 0.875rem;
+    --text-label-lg--line-height: 1.25rem;
+    --text-label-lg--font-weight: 600;
+    --text-label-lg--letter-spacing: 0.01em;
+
+    --text-label-md: 0.75rem;
+    --text-label-md--line-height: 1rem;
+    --text-label-md--font-weight: 500;
+
+    /* Level 1 / Level 2 elevation, tuned for a dark surface. */
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.35);
+    --shadow-overlay: 0 4px 16px rgba(0, 0, 0, 0.45);
+    --shadow-glow: 0 0 12px rgba(16, 185, 129, 0.35);
+    --shadow-glow-lg: 0 0 28px rgba(16, 185, 129, 0.35);
+
+    --radius-phone: 1rem;
+}
+
+:root {
+    --background: #0e1511;
+    --foreground: #dde4dd;
+    --card: #161d19;
+    --card-foreground: #dde4dd;
+    --popover: #1a211d;
+    --popover-foreground: #dde4dd;
+    --primary: #10b981;
+    --primary-foreground: #003824;
+    /* Secondary amber — "review / in progress" attention colour. */
+    --secondary: #f59e0b;
+    --secondary-foreground: #231803;
+    --muted: #1a211d;
+    --muted-foreground: #bbcabf;
+    --accent: #202b24;
+    --accent-foreground: #dde4dd;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #2e3b33;
+    --input: #2e3b33;
+    --ring: #10b981;
+    --chart-1: #10b981;
+    --chart-2: #f59e0b;
+    --chart-3: #f43f5e;
+    --chart-4: #38bdf8;
+    --chart-5: #86948a;
+    --radius: 0.5rem;
+    --sidebar: #161d19;
+    --sidebar-foreground: #dde4dd;
+    --sidebar-primary: #10b981;
+    --sidebar-primary-foreground: #003824;
+    --sidebar-accent: #202b24;
+    --sidebar-accent-foreground: #dde4dd;
+    --sidebar-border: #2e3b33;
+    --sidebar-ring: #10b981;
+
+    /* Stitch export accents, kept in the green-black language. */
+    --outline: #86948a;
+    --outline-variant: #2e3b33;
+    /* Glass was rgba(30,41,59,0.7) on the export; re-tinted to the app's green-black. */
+    --surface-glass: rgba(22, 29, 25, 0.82);
+    --surface-canvas: #0b120e;
+    --surface-sunken: #09100c;
+
+    /* Semantic status colours: rose (reported), amber (review), emerald (fixed). */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #f43f5e;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans text-body-lg antialiased;
+  }
+  html {
+    @apply font-sans;
+    color-scheme: dark;
+  }
+}
+
+/*
+ * Map (react-leaflet / OSM).
+ *
+ * Tiles are light by default, so the tile pane is filtered to the app's
+ * dark-green language. Markers live outside the tile pane and stay unfiltered.
+ */
+.leaflet-tile-pane {
+  filter: grayscale(1) invert(1) brightness(0.82) contrast(1.12) sepia(0.4) hue-rotate(85deg)
+    saturate(1.9);
+}
+
+.leaflet-container {
+  background: var(--surface-sunken);
+  font-family: inherit;
+}
+
+.leaflet-control-attribution {
+  background: var(--surface-glass) !important;
+  color: var(--muted-foreground) !important;
+  font-size: 10px !important;
+  backdrop-filter: blur(6px);
+}
+
+.leaflet-control-attribution a {
+  color: var(--primary) !important;
+}
+
+.leaflet-bar,
+.leaflet-control-zoom a {
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+/* Pothole markers (divIcon HTML, styled here so dynamic markup needs no classes
+   that Tailwind has to see at build time). */
+.pothole-marker {
+  background: transparent;
+  border: 0;
+}
+
+.pothole-marker__dot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+.pothole-marker--selected .pothole-marker__dot {
+  width: 22px;
+  height: 22px;
+  border-color: #ffffff;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.28),
+    0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.pothole-marker__pulse {
+  position: absolute;
+  inset: -10px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.35);
+  animation: pothole-pulse 1.8s ease-out infinite;
+}
+
+@keyframes pothole-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* "You are here" beacon. */
+.you-beacon {
+  background: transparent;
+  border: 0;
+}
+
+.you-beacon__dot {
+  position: relative;
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--primary);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-glow);
+}
+
+.you-beacon__halo {
+  position: absolute;
+  inset: -8px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.3);
+  animation: pothole-pulse 2.2s ease-out infinite;
+}
+
+/* Horizontal pill rows scroll without a visible scrollbar (the scrim hints at
+   the clipped content instead). */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
