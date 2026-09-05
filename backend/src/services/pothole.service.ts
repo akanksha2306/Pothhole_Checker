@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import type {
   CreateReportInput,
   Pothole,
+  PotholeAreaItem,
   PotholeDetail,
   PotholeListQuery,
   PotholeListResponse,
@@ -19,7 +20,18 @@ import type {
 import { env } from '../lib/env.js';
 import { BadRequestError, ConflictError, NotFoundError } from '../lib/errors.js';
 import { prisma } from '../lib/prisma.js';
-import { potholeSummarySelect, toPothole, toPotholeEvent, toPotholeListItem, toPotholeReport, toReportHistoryItem } from '../lib/serialize.js';
+import {
+  potholeSummarySelect,
+  toPothole,
+  toPotholeAreaItem,
+  toPotholeEvent,
+  toPotholeListItem,
+  toPotholeReport,
+  toReportHistoryItem,
+  type PotholeReportWithRelations,
+  type PotholeWithUpvoteCount,
+  type UpvoteInfo,
+} from '../lib/serialize.js';
 import { geocodeService, type GeocodeService } from './geocode.service.js';
 import { storageService, type StorageService } from './storage.service.js';
 
@@ -57,6 +69,7 @@ export class PotholeService {
   async findNearby(
     latitude: number,
     longitude: number,
+    viewerId?: string,
     radiusM: number = env.NEARBY_RADIUS_M,
   ): Promise<NearbyPothole | null> {
     // Cheap bounding-box prefilter in SQL (2x the radius to absorb GPS jitter),
@@ -86,7 +99,75 @@ export class PotholeService {
     }
 
     if (!best) return null;
-    return { pothole: toPothole(best.pothole), distanceMeters: Math.round(best.distance * 10) / 10 };
+    return {
+      pothole: toPothole(best.pothole, await this.upvoteInfo(best.pothole.id, viewerId)),
+      distanceMeters: Math.round(best.distance * 10) / 10,
+    };
+  }
+
+  /**
+   * "N potholes within 2 km": everything inside AREA_RADIUS_M, nearest first,
+   * capped at AREA_LIST_LIMIT items while `total` reports the full count.
+   */
+  async listWithinArea(latitude: number, longitude: number): Promise<{ items: PotholeAreaItem[]; total: number }> {
+    const radiusM = env.AREA_RADIUS_M;
+    const deltaLat = (radiusM * 1.05) / METERS_PER_DEGREE_LAT;
+    const cosLat = Math.max(Math.cos((latitude * Math.PI) / 180), 0.01);
+    const deltaLng = deltaLat / cosLat;
+
+    const candidates: PotholeWithUpvoteCount[] = await this.db.pothole.findMany({
+      where: {
+        latitude: { gte: latitude - deltaLat, lte: latitude + deltaLat },
+        longitude: { gte: longitude - deltaLng, lte: longitude + deltaLng },
+      },
+      include: { _count: { select: { upvotes: true } } },
+    });
+
+    const within = candidates
+      .map((pothole) => ({
+        pothole,
+        distance: haversineMeters(latitude, longitude, pothole.latitude.toNumber(), pothole.longitude.toNumber()),
+      }))
+      .filter((entry) => entry.distance <= radiusM)
+      .sort((a, b) => a.distance - b.distance);
+
+    return {
+      items: within
+        .slice(0, env.AREA_LIST_LIMIT)
+        .map((entry) => toPotholeAreaItem(entry.pothole, Math.round(entry.distance * 10) / 10)),
+      total: within.length,
+    };
+  }
+
+  /** Toggle: insert-first so the unique constraint arbitrates concurrent calls. */
+  async toggleUpvote(idOrHumanCode: string, userId: string): Promise<{ upvoted: boolean; upvoteCount: number }> {
+    const pothole = await this.db.pothole.findFirst({
+      where: { OR: [{ id: idOrHumanCode }, { humanCode: idOrHumanCode }] },
+      select: { id: true },
+    });
+    if (!pothole) {
+      throw new NotFoundError('Pothole not found');
+    }
+
+    let upvoted = true;
+    try {
+      await this.db.potholeUpvote.create({ data: { potholeId: pothole.id, userId } });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+        throw error;
+      }
+      // Already upvoted -> this call is the undo.
+      upvoted = false;
+      try {
+        await this.db.potholeUpvote.delete({
+          where: { potholeId_userId: { potholeId: pothole.id, userId } },
+        });
+      } catch {
+        // Someone else removed it first; the end state is the same: not upvoted.
+      }
+    }
+
+    return { upvoted, upvoteCount: await this.db.potholeUpvote.count({ where: { potholeId: pothole.id } }) };
   }
 
   /**
@@ -105,7 +186,8 @@ export class PotholeService {
 
     const streetName = input.potholeId ? null : await this.geocode.reverseGeocode(input.latitude, input.longitude);
 
-    return this.db.$transaction(async (tx) => {
+    const created = await this.db.$transaction(
+      async (tx): Promise<{ report: PotholeReportWithRelations; pothole: PrismaPothole }> => {
       let pothole: PrismaPothole;
       let eventType: 'REPORTED' | 'REPORTED_AGAIN';
 
@@ -173,8 +255,14 @@ export class PotholeService {
         data: { potholeId: pothole.id, type: eventType, byUserId: userId },
       });
 
-      return { report: toPotholeReport(report), pothole: toPothole(pothole) };
-    });
+      return { report, pothole };
+      },
+    );
+
+    // Serialized outside the transaction so the upvote counts are accurate for
+    // the attach path too (an existing pothole can already have upvotes).
+    const upvotes = await this.upvoteInfo(created.pothole.id, userId);
+    return { report: toPotholeReport(created.report), pothole: toPothole(created.pothole, upvotes) };
   }
 
   /** Pothole list (map + list screens). `reports` = most reported, `recent` = newest. */
@@ -184,11 +272,12 @@ export class PotholeService {
         ? [{ reportCount: 'desc' }, { lastReportedAt: 'desc' }, { id: 'desc' }]
         : [{ lastReportedAt: 'desc' }, { id: 'desc' }];
 
-    const rows = await this.db.pothole.findMany({
+    const rows: PotholeWithUpvoteCount[] = await this.db.pothole.findMany({
       where: query.status ? { status: query.status } : {},
       orderBy,
       take: query.limit + 1,
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      include: { _count: { select: { upvotes: true } } },
     });
 
     const hasMore = rows.length > query.limit;
@@ -199,7 +288,7 @@ export class PotholeService {
 
   /** Detail by internal id or human code: pothole + timeline + report history. */
   /** Detail without repairs — the caller merges those in (see pothole.controller). */
-  async getDetail(idOrHumanCode: string): Promise<Omit<PotholeDetail, 'repairs'>> {
+  async getDetail(idOrHumanCode: string, viewerId?: string): Promise<Omit<PotholeDetail, 'repairs'>> {
     const pothole = await this.db.pothole.findFirst({
       where: { OR: [{ id: idOrHumanCode }, { humanCode: idOrHumanCode }] },
     });
@@ -223,7 +312,7 @@ export class PotholeService {
     ]);
 
     return {
-      pothole: toPothole(pothole),
+      pothole: toPothole(pothole, await this.upvoteInfo(pothole.id, viewerId)),
       events: events.map(toPotholeEvent),
       reports: reports.map(toReportHistoryItem),
     };
@@ -260,7 +349,7 @@ export class PotholeService {
         data: { potholeId: pothole.id, type: 'STATUS_CHANGED', byUserId: actorId, note: note ?? null },
       });
 
-      return toPothole(updated);
+      return toPothole(updated, await this.upvoteInfo(pothole.id, actorId));
     });
   }
 
@@ -283,6 +372,15 @@ export class PotholeService {
     );
     const raw = rows.at(0)?.nextval ?? 0;
     return `${env.CITY_CODE}-${String(Number(raw)).padStart(5, '0')}`;
+  }
+
+  /** Viewer-scoped upvote state for a single-pothole payload. */
+  private async upvoteInfo(potholeId: string, viewerId?: string): Promise<UpvoteInfo> {
+    const [count, mine] = await Promise.all([
+      this.db.potholeUpvote.count({ where: { potholeId } }),
+      viewerId ? this.db.potholeUpvote.count({ where: { potholeId, userId: viewerId } }) : Promise.resolve(0),
+    ]);
+    return { count, myUpvote: mine > 0 };
   }
 }
 

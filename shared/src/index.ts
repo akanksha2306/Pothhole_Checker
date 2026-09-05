@@ -301,6 +301,43 @@ export const NearbyPotholeQuerySchema = z.object({
 });
 export type NearbyPotholeQuery = z.infer<typeof NearbyPotholeQuerySchema>;
 
+/** GET /api/potholes/nearby-area query string. */
+export const NearbyAreaQuerySchema = z.object({
+  latitude: z.coerce.number().min(-90).max(90),
+  longitude: z.coerce.number().min(-180).max(180),
+});
+export type NearbyAreaQuery = z.infer<typeof NearbyAreaQuerySchema>;
+
+/** One pothole within the area radius, with its distance from the point. */
+export const PotholeAreaItemSchema = z.object({
+  id: z.string().min(1),
+  humanCode: z.string().min(1),
+  primaryPhotoKey: z.string().min(1),
+  streetName: z.string().nullable(),
+  status: ReportStatusEnum,
+  latitude: LatitudeSchema,
+  longitude: LongitudeSchema,
+  distanceMeters: DistanceMetersSchema,
+  reportCount: z.number().int().nonnegative(),
+  upvoteCount: z.number().int().nonnegative(),
+});
+export type PotholeAreaItem = z.infer<typeof PotholeAreaItemSchema>;
+
+/** GET /api/potholes/nearby-area — `total` counts everything in radius;
+ *  `items` is the capped nearest-first list (so the UI can say "8 within 2 km"). */
+export const NearbyAreaResponseSchema = z.object({
+  items: z.array(PotholeAreaItemSchema),
+  total: z.number().int().nonnegative(),
+});
+export type NearbyAreaResponse = z.infer<typeof NearbyAreaResponseSchema>;
+
+/** POST /api/potholes/:idOrHumanCode/upvote — toggle result. */
+export const PotholeUpvoteToggleResponseSchema = z.object({
+  upvoted: z.boolean(),
+  upvoteCount: z.number().int().nonnegative(),
+});
+export type PotholeUpvoteToggleResponse = z.infer<typeof PotholeUpvoteToggleResponseSchema>;
+
 /** GET /api/potholes query string. `limit` arrives as a string over HTTP. */
 export const PotholeListQuerySchema = z.object({
   status: ReportStatusEnum.optional(),

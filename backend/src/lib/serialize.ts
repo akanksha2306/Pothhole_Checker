@@ -15,6 +15,7 @@ import type {
 } from '@prisma/client';
 import type {
   Pothole,
+  PotholeAreaItem,
   PotholeEvent,
   PotholeEventActor,
   PotholeListItem,
@@ -51,7 +52,18 @@ export function toPublicUser(user: PrismaUser): User {
   };
 }
 
-export function toPothole(pothole: PrismaPothole): Pothole {
+/** A pothole row optionally carrying its upvote count (via `_count`). */
+export type PotholeWithUpvoteCount = PrismaPothole & { _count?: { upvotes: number } };
+
+/** Viewer-scoped upvote state for a single pothole payload. */
+export interface UpvoteInfo {
+  count: number;
+  myUpvote: boolean;
+}
+
+const NO_UPVOTES: UpvoteInfo = { count: 0, myUpvote: false };
+
+export function toPothole(pothole: PotholeWithUpvoteCount, upvotes: UpvoteInfo = { count: pothole._count?.upvotes ?? 0, myUpvote: false }): Pothole {
   return {
     id: pothole.id,
     humanCode: pothole.humanCode,
@@ -63,6 +75,8 @@ export function toPothole(pothole: PrismaPothole): Pothole {
     status: pothole.status,
     reportCount: pothole.reportCount,
     repairsCount: pothole.repairsCount,
+    upvoteCount: upvotes.count,
+    myUpvote: upvotes.myUpvote,
     firstReportedAt: pothole.firstReportedAt.toISOString(),
     lastReportedAt: pothole.lastReportedAt.toISOString(),
     lastRepairedAt: pothole.lastRepairedAt ? pothole.lastRepairedAt.toISOString() : null,
@@ -71,7 +85,7 @@ export function toPothole(pothole: PrismaPothole): Pothole {
   };
 }
 
-export function toPotholeListItem(pothole: PrismaPothole): PotholeListItem {
+export function toPotholeListItem(pothole: PotholeWithUpvoteCount): PotholeListItem {
   return {
     id: pothole.id,
     humanCode: pothole.humanCode,
@@ -82,7 +96,23 @@ export function toPotholeListItem(pothole: PrismaPothole): PotholeListItem {
     status: pothole.status,
     reportCount: pothole.reportCount,
     repairsCount: pothole.repairsCount,
+    upvoteCount: pothole._count?.upvotes ?? 0,
     lastReportedAt: pothole.lastReportedAt.toISOString(),
+  };
+}
+
+export function toPotholeAreaItem(pothole: PotholeWithUpvoteCount, distanceMeters: number): PotholeAreaItem {
+  return {
+    id: pothole.id,
+    humanCode: pothole.humanCode,
+    primaryPhotoKey: pothole.primaryPhotoKey,
+    streetName: pothole.streetName ?? null,
+    status: pothole.status,
+    latitude: pothole.latitude.toNumber(),
+    longitude: pothole.longitude.toNumber(),
+    distanceMeters,
+    reportCount: pothole.reportCount,
+    upvoteCount: pothole._count?.upvotes ?? 0,
   };
 }
 

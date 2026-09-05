@@ -1,11 +1,13 @@
 import type { RequestHandler } from 'express';
 import type {
+  NearbyAreaQuery,
   NearbyPotholeQuery,
   Pothole,
   PotholeDetail,
   PotholeListQuery,
   PotholeListResponse,
   PotholeStatusUpdateInput,
+  PotholeUpvoteToggleResponse,
 } from 'shared';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { NotFoundError } from '../lib/errors.js';
@@ -18,15 +20,33 @@ import { storageService } from '../services/storage.service.js';
 
 /** GET /api/potholes/nearby?latitude&longitude — pothole within radius, or null. */
 export const getNearbyPothole: RequestHandler = asyncHandler(async (req, res) => {
-  requireUser(req);
+  const viewer = requireUser(req);
   const { latitude, longitude } = validated<NearbyPotholeQuery>(req, 'query');
 
-  const match = await potholeService.findNearby(latitude, longitude);
+  const match = await potholeService.findNearby(latitude, longitude, viewer.sub);
   const body: { pothole: Pothole | null; distanceMeters?: number } = match
     ? { pothole: match.pothole, distanceMeters: match.distanceMeters }
     : { pothole: null };
 
   res.status(200).json(body);
+});
+
+/** GET /api/potholes/nearby-area?latitude&longitude — potholes within AREA_RADIUS_M. */
+export const getNearbyArea: RequestHandler = asyncHandler(async (req, res) => {
+  requireUser(req);
+  const { latitude, longitude } = validated<NearbyAreaQuery>(req, 'query');
+
+  const area = await potholeService.listWithinArea(latitude, longitude);
+  res.status(200).json(area);
+});
+
+/** POST /api/potholes/:idOrHumanCode/upvote — toggle, one per person per pothole. */
+export const toggleUpvote: RequestHandler = asyncHandler(async (req, res) => {
+  const viewer = requireUser(req);
+  const { idOrHumanCode } = validated<{ idOrHumanCode: string }>(req, 'params');
+
+  const result: PotholeUpvoteToggleResponse = await potholeService.toggleUpvote(idOrHumanCode, viewer.sub);
+  res.status(200).json(result);
 });
 
 /** GET /api/potholes?status&sort&limit&cursor — map + list screens. */
@@ -44,7 +64,7 @@ export const getPotholeDetail: RequestHandler = asyncHandler(async (req, res) =>
   const { idOrHumanCode } = validated<{ idOrHumanCode: string }>(req, 'params');
 
   const [detail, repairs] = await Promise.all([
-    potholeService.getDetail(idOrHumanCode),
+    potholeService.getDetail(idOrHumanCode, viewer.sub),
     repairService.listForPothole(idOrHumanCode, viewer.sub),
   ]);
 
