@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/auth-provider'
 import { cn } from '@/lib/utils'
+import type { User } from 'shared'
 
 function NavLinkItem({ to, label }: { to: string; label: string }) {
   return (
@@ -34,6 +35,29 @@ function initials(name: string): string {
     .join('')
 }
 
+/** Header pill copy per role — exact wording Akanksha asked for. */
+function roleBadgeLabel(role: User['role']): string {
+  switch (role) {
+    case 'ADMIN':
+      return 'Logged in as Admin'
+    case 'REPAIRER':
+      return 'Logged in as Repair crew'
+    default:
+      return 'Logged in as Citizen'
+  }
+}
+
+function RoleBadge({ role }: { role: User['role'] }) {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-label-md text-primary"
+      title={roleBadgeLabel(role)}
+    >
+      {roleBadgeLabel(role)}
+    </span>
+  )
+}
+
 function BrandMark({ to, compact = false }: { to: string; compact?: boolean }) {
   return (
     <Link to={to} className="flex items-center gap-2">
@@ -46,7 +70,7 @@ function BrandMark({ to, compact = false }: { to: string; compact?: boolean }) {
         <MapPin className={compact ? 'size-4' : 'size-5'} aria-hidden="true" />
       </span>
       {!compact && (
-        <span className="font-heading text-headline-sm tracking-tight text-foreground">
+        <span className="hidden font-heading text-headline-sm tracking-tight text-foreground min-[420px]:inline">
           PotholeWatch
         </span>
       )}
@@ -85,7 +109,8 @@ function AppShell({ children }: PageShellProps) {
           <div className="flex items-center justify-between gap-3 px-5 py-3">
             <BrandMark to={authed ? '/reports' : '/login'} />
             {user && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
+                <RoleBadge role={user.role} />
                 <Avatar className="size-9">
                   {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
                   <AvatarFallback className="text-label-md">{initials(user.name)}</AvatarFallback>
@@ -139,6 +164,7 @@ function ConsoleShell({ children }: PageShellProps) {
                   <AvatarFallback className="text-label-md">{initials(user?.name ?? '')}</AvatarFallback>
                 </Avatar>
                 <span className="hidden text-body-md text-muted-foreground sm:inline">{user?.name}</span>
+                {user && <RoleBadge role={user.role} />}
                 <Button variant="outline" size="sm" onClick={() => void handleSignOut()}>
                   Sign out
                 </Button>
