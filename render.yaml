@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: potholewatch-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: node dist/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false      # paste your Neon connection string in the Render dashboard
+      - key: JWT_SECRET
+        generateValue: true   # Render generates a strong production secret
+      - key: GOOGLE_CLIENT_ID
+        sync: false      # same client ID as the frontend
+      - key: ADMIN_EMAILS
+        value: kanjoliaakanksha@gmail.com
+      - key: REPAIRER_EMAILS
+        value: kanjoliaakanksha@gmail.com
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        value: potholewatch-photos
+      - key: CITY_CODE
+        value: BLR
+      - key: NEARBY_RADIUS_M
+        value: '20'
+      - key: REPAIR_GPS_RADIUS_M
+        value: '25'
+      - key: AREA_RADIUS_M
+        value: '2000'
+      - key: AREA_LIST_LIMIT
+        value: '10'
+      - key: CORS_ORIGIN
+        sync: false      # set to your Vercel URL after the frontend deploys
+      - key: CLIENT_URL
+        sync: false      # same as CORS_ORIGIN
