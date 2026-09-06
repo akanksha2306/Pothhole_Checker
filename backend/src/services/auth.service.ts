@@ -27,14 +27,21 @@ function redactTokens(value: string): string {
 }
 
 /**
- * Login-intent gate, enforced server-side (the UI's Resident/Municipality choice
+ * Login-intent gate, enforced server-side (the UI's Citizen/Municipality choice
  * is never trusted). MUNICIPALITY intent requires an allowlisted municipal role;
  * a rejected login must not create any rows or issue a session.
  */
 export function assertIntentAllowsRole(intent: LoginIntent, role: Role): void {
   if (intent === 'MUNICIPALITY' && role !== 'ADMIN' && role !== 'REPAIRER') {
-    throw new ForbiddenError("This account doesn't have municipal access — sign in as a resident instead");
+    throw new ForbiddenError("This account doesn't have municipal access — sign in as a citizen instead");
   }
+}
+
+/** Result of a successful login: the DB user plus the role this session runs under. */
+export interface LoginResult {
+  user: PrismaUser;
+  /** The role this session carries — the login door decides it, not the allowlist. */
+  sessionRole: Role;
 }
 
 export class AuthService {
@@ -49,30 +56,37 @@ export class AuthService {
 
   /**
    * Verifies the credential, applies the allowlist, and upserts the user.
-   * Returns the DB user; the caller turns it into a session.
+   *
+   * The allowlist stays the source of truth for what an account *is* (stored on
+   * the User row), but the login door decides what the session *runs as*: the
+   * citizen door is the public entrance, so even an allowlisted admin entering
+   * through it gets a CITIZEN session. MUNICIPALITY grants the real role.
    */
-  async loginWithGoogleCredential(credential: string, intent: LoginIntent = 'RESIDENT'): Promise<PrismaUser> {
+  async loginWithGoogleCredential(credential: string, intent: LoginIntent = 'CITIZEN'): Promise<LoginResult> {
     const googleUser = await this.verifyGoogleCredential(credential);
-    const role: Role = roleForEmail(googleUser.email);
+    const dbRole: Role = roleForEmail(googleUser.email);
     // Before any upsert: a rejected login must not create rows or a session.
-    assertIntentAllowsRole(intent, role);
+    assertIntentAllowsRole(intent, dbRole);
 
-    return this.db.user.upsert({
+    const user = await this.db.user.upsert({
       where: { googleId: googleUser.sub },
       update: {
         email: googleUser.email,
         name: googleUser.name,
         avatarUrl: googleUser.avatarUrl,
-        role,
+        role: dbRole,
       },
       create: {
         googleId: googleUser.sub,
         email: googleUser.email,
         name: googleUser.name,
         avatarUrl: googleUser.avatarUrl,
-        role,
+        role: dbRole,
       },
     });
+
+    const sessionRole: Role = intent === 'CITIZEN' ? 'CITIZEN' : dbRole;
+    return { user, sessionRole };
   }
 
   private async verifyGoogleCredential(credential: string): Promise<VerifiedGoogleUser> {

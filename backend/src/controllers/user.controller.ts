@@ -7,5 +7,7 @@ import { userService } from '../services/user.service.js';
 export const getMe: RequestHandler = asyncHandler(async (req, res) => {
   const session = requireUser(req);
   const user = await userService.getPublicUser(session.sub);
-  res.status(200).json(user);
+  // The role the session was created with (login door) wins over the DB role:
+  // an allowlisted admin in a CITIZEN session must see and get CITIZEN.
+  res.status(200).json({ ...user, role: session.role });
 });

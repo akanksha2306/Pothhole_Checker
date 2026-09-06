@@ -26,7 +26,7 @@ interface RepairVerificationCardProps {
 }
 
 /**
- * Resident verdict card, shown while the repair is AWAITING_VERIFICATION and
+ * Citizen verdict card, shown while the repair is AWAITING_VERIFICATION and
  * the viewer has not voted yet (`verifications.myVerdict === null`). The
  * backend enforces who may vote (reporters of the pothole; admins exempt);
  * this card hides itself from repairers.

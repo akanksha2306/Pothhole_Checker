@@ -24,8 +24,8 @@ const VALUE_PROPS = [
 
 const LOGIN_OPTIONS = [
   {
-    intent: 'RESIDENT' as LoginIntent,
-    title: "I'm a resident",
+    intent: 'CITIZEN' as LoginIntent,
+    title: "I'm a citizen",
     sub: 'Report potholes and track repairs in your area',
     icon: User,
     tone: 'bg-primary/10 text-primary',
@@ -67,9 +67,9 @@ export function LoginPage() {
       } catch (error: unknown) {
         if (isApiError(error) && error.status === 403) {
           // Municipal gate: show the server's message and drop the user back to
-          // the resident door so the retry is one tap.
+          // the citizen door so the retry is one tap.
           setNotice(error.message)
-          setIntent('RESIDENT')
+          setIntent('CITIZEN')
         } else {
           setNotice(
             error instanceof GoogleSignInError || error instanceof Error

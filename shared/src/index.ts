@@ -405,16 +405,18 @@ export const PhotoUploadRequestSchema = z.object({
 });
 export type PhotoUploadRequest = z.infer<typeof PhotoUploadRequestSchema>;
 
-/** Which door the user came in through on the login page. Enforced server-side:
- *  MUNICIPALITY requires an ADMIN or REPAIRER allowlisted account. */
-export const LoginIntentEnum = z.enum(['RESIDENT', 'MUNICIPALITY']);
+/** Which door the user came in through on the login page. The door decides the
+ *  session role: CITIZEN is the public entrance (everyone gets a CITIZEN
+ *  session through it); MUNICIPALITY requires an ADMIN or REPAIRER allowlisted
+ *  account and grants that account's real role. */
+export const LoginIntentEnum = z.enum(['CITIZEN', 'MUNICIPALITY']);
 export type LoginIntent = z.infer<typeof LoginIntentEnum>;
 
 /** POST /api/auth/google — Google Identity Services ID token. */
 export const GoogleAuthRequestSchema = z.object({
   credential: z.string().min(1, 'credential is required'),
-  /** Defaults to RESIDENT; never trusted from the UI alone. */
-  intent: LoginIntentEnum.default('RESIDENT'),
+  /** Defaults to CITIZEN; never trusted from the UI alone. */
+  intent: LoginIntentEnum.default('CITIZEN'),
 });
 export type GoogleAuthRequest = z.infer<typeof GoogleAuthRequestSchema>;
 

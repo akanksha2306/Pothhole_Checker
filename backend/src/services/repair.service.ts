@@ -140,7 +140,7 @@ export class RepairService {
             potholeId: repair.potholeId,
             type: 'REPAIR_SUBMITTED',
             byUserId: actor.sub,
-            note: 'awaiting resident verification',
+            note: 'awaiting citizen verification',
           },
         });
       }
@@ -179,7 +179,7 @@ export class RepairService {
         where: { potholeId: repair.potholeId, reporterId: actor.sub },
       });
       if (reported === 0) {
-        throw new ForbiddenError('Only residents who reported this pothole can verify the repair');
+        throw new ForbiddenError('Only citizens who reported this pothole can verify the repair');
       }
     }
 
@@ -226,7 +226,7 @@ export class RepairService {
             potholeId: repair.potholeId,
             type: 'REOPENED',
             byUserId: actor.sub,
-            note: `resident says not fixed${note ? ` — ${note}` : ''}`,
+            note: `citizen says not fixed${note ? ` — ${note}` : ''}`,
           },
         });
       }
@@ -281,7 +281,7 @@ export class RepairService {
       return;
     }
     if (status === 'AWAITING_VERIFICATION') {
-      throw new ConflictError('After evidence already submitted — awaiting resident verification');
+      throw new ConflictError('After evidence already submitted — awaiting citizen verification');
     }
     if (status !== 'IN_PROGRESS') {
       throw new ConflictError('Pick up the job and capture the before photo first');

@@ -64,7 +64,7 @@ export function PotholeDetailPage() {
 
   // Repair-flow surfaces, by viewer role:
   //  - repairer: the state machine for the open job
-  //  - residents/admin: the verdict card while a repair awaits verification
+  //  - citizens/admin: the verdict card while a repair awaits verification
   const openRepair = pickOpenRepair(repairs)
   const verificationRepair =
     repairs.find(

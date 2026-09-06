@@ -26,11 +26,11 @@ function deriveStep(repair: Repair): RepairerStep {
     return { kind: 'capture', stage: repair.before ? 'after' : 'before' }
   if (repair.status === 'AWAITING_VERIFICATION') return { kind: 'submitted' }
   if (repair.status === 'VERIFIED_FIXED') return { kind: 'verified' }
-  // REOPENED: residents rejected the last "after" — the crew re-submits evidence.
+  // REOPENED: citizens rejected the last "after" — the crew re-submits evidence.
   return { kind: 'reopened' }
 }
 
-const STEP_LABELS = ['Before photo', 'After photo', 'Resident verify'] as const
+const STEP_LABELS = ['Before photo', 'After photo', 'Citizen verify'] as const
 
 interface RepairStepperProps {
   potholeHumanCode: string
@@ -134,10 +134,10 @@ export function RepairStepper({ potholeHumanCode, repair, className }: RepairSte
           <div className="space-y-3">
             <div className="rounded-lg bg-violet-500/10 p-4">
               <p className="text-body-md font-semibold text-violet-300">
-                Submitted for resident verification
+                Submitted for citizen verification
               </p>
               <p className="mt-1 text-body-md text-muted-foreground">
-                Residents who reported this pothole are asked to confirm the fix on site. You will
+                Citizens who reported this pothole are asked to confirm the fix on site. You will
                 see the verdicts here — nothing more to do right now.
               </p>
             </div>
@@ -154,7 +154,7 @@ export function RepairStepper({ potholeHumanCode, repair, className }: RepairSte
         {step.kind === 'verified' && (
           <div className="rounded-lg bg-emerald-500/10 p-4">
             <p className="text-body-md font-semibold text-emerald-400">
-              Verified fixed by residents
+              Verified fixed by citizens
             </p>
             <p className="mt-1 text-body-md text-muted-foreground">
               {repair.verifications.fixed} of {repair.verifications.total}{' '}
@@ -166,7 +166,7 @@ export function RepairStepper({ potholeHumanCode, repair, className }: RepairSte
 
         {step.kind === 'reopened' && (
           <div className="rounded-lg bg-rose-500/10 p-4">
-            <p className="text-body-md font-semibold text-rose-400">Reopened by residents</p>
+            <p className="text-body-md font-semibold text-rose-400">Reopened by citizens</p>
             <p className="mt-1 text-body-md text-muted-foreground">
               The last repair did not hold up. Go back to the pothole and re-submit fresh after
               evidence.
@@ -286,7 +286,7 @@ function EvidenceCapture({
 
   const busy = mutation.isPending || locating
   const confirmLabel =
-    stage === 'before' ? 'Attach before photo' : 'Submit for resident verification'
+    stage === 'before' ? 'Attach before photo' : 'Submit for citizen verification'
 
   return (
     <div className="space-y-3">

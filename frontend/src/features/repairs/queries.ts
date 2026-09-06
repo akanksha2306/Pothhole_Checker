@@ -45,7 +45,7 @@ export function useAddRepairEvidence(
   )
 }
 
-/** Resident (or admin) verdict. 409 once verification closes. */
+/** Citizen (or admin) verdict. 409 once verification closes. */
 export function useVerifyRepair(idOrHumanCode: string, repairId: string) {
   return useRepairMutation(
     (input: { verdict: RepairVerdict; note?: string }) =>

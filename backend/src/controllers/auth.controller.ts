@@ -14,13 +14,15 @@ import { authService } from '../services/auth.service.js';
 /** POST /api/auth/google — verify the GIS ID token, set the session cookie. */
 export const googleAuth: RequestHandler = asyncHandler(async (req, res) => {
   const { credential, intent } = validated<GoogleAuthRequest>(req, 'body');
-  const user = await authService.loginWithGoogleCredential(credential, intent);
+  const { user, sessionRole } = await authService.loginWithGoogleCredential(credential, intent);
 
-  const token = signSessionToken({ sub: user.id, email: user.email, role: user.role });
+  // The session (JWT + response) carries the door-decided role; the DB keeps
+  // the allowlist role for when the same account returns via MUNICIPALITY.
+  const token = signSessionToken({ sub: user.id, email: user.email, role: sessionRole });
   res
     .cookie(SESSION_COOKIE, token, sessionCookieOptions())
     .status(200)
-    .json(toPublicUser(user));
+    .json({ ...toPublicUser(user), role: sessionRole });
 });
 
 /** POST /api/auth/logout — clear the session cookie. */

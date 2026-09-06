@@ -1,6 +1,6 @@
 # PotholeWatch 🕳️
 
-**Citizen-powered pothole reporting with proof.** Report a pothole with a photo and GPS, find out someone already did, upvote it instead of duplicating — and make sure every "fixed" claim is verified by a resident before it counts.
+**Citizen-powered pothole reporting with proof.** Report a pothole with a photo and GPS, find out someone already did, upvote it instead of duplicating — and make sure every "fixed" claim is verified by a citizen before it counts.
 
 > **The core idea:** users create reports; **locations create potholes.** One pothole, many reports, one verified repair — instead of ten identical complaints.
 
@@ -13,14 +13,14 @@
 1. **Report** — snap a photo (geotagged: GPS is embedded into the image itself), location auto-filled from live GPS, the photo's EXIF tags, or a pin-drop map.
 2. **No duplicates** — before submitting, the app checks **20 m** for the same physical pothole (*"Is this the same pothole?"*) and **2 km** for everything already reported nearby. Already reported? **Upvote** it — one tap pushes it up the queue for the municipality.
 3. **Repair with evidence** — an assigned repairer must capture **before** and **after** photos *standing at the pothole* (GPS-gated, time-ordered). No on-site evidence, no resolution.
-4. **Resident verification** — the repair only counts as fixed when a resident who reported it confirms. "Not fixed" reopens the pothole; the history keeps every repair honest.
+4. **Citizen verification** — the repair only counts as fixed when a citizen who reported it confirms. "Not fixed" reopens the pothole; the history keeps every repair honest.
 
 Every pothole gets a permanent ID (`#BLR-00001`), a status, report/upvote counts, and a full timeline: *first reported → repaired → reported again → verified*.
 
 ## The flow, end to end
 
 ```
-🟢 CITIZEN (login: "I'm a resident")
+🟢 CITIZEN (login door: "I'm a citizen" — the door you pick is the role you get)
    └── Report: photo + GPS + description
          ├── same pothole within 20 m?  → YES, SAME POTHOLE (joins it)
          └── potholes within 2 km?      → upvote the existing one
@@ -37,9 +37,9 @@ Every pothole gets a permanent ID (`#BLR-00001`), a status, report/upvote counts
        └── 📸 after photo   (GPS ≤ 25 m, must be newer)
               🟣 AWAITING VERIFICATION
                   │
-🟢 CITIZEN (a resident who reported it)
+🟢 CITIZEN (a citizen who reported it)
    └── "Did this actually get fixed?"
-         ├── ✅ Yes, it's fixed  → ✅ RESOLVED  (REPAIRS +1, "Verified by resident")
+         ├── ✅ Yes, it's fixed  → ✅ RESOLVED  (REPAIRS +1, "Verified by citizen")
          └── ❌ No, still broken → 🔴 REOPENED  (back to the queue)
 
 Rules that keep it honest: nobody marks a pothole fixed directly; repair
@@ -52,7 +52,7 @@ own repair; every step lands on the pothole's permanent timeline.
 - 🔐 **Google sign-in** only (GIS ID token → httpOnly cookie session) — roles: Citizen, Repairer, Admin (email allowlists)
 - 📸 **Geotagged photos** — EXIF GPS embedded on capture; EXIF read + pin-drop picker for gallery uploads
 - 🧭 **Duplicate detection** — 20 m same-pothole matching with human confirmation; 2 km area awareness with upvotes
-- 🛠️ **Repair verification loop** — GPS-gated before/after evidence, resident sign-off, reopen on failure
+- 🛠️ **Repair verification loop** — GPS-gated before/after evidence, citizen sign-off, reopen on failure
 - 🗺️ **Map home** — live Leaflet + OpenStreetMap (no API key), status markers, filters, tap-for-details callout
 - 🏘️ **Community** — register your community/ward (name, city, state, PIN) and report for it
 - 📱 **Installable PWA** — offline app shell via service worker, works as an app on any phone

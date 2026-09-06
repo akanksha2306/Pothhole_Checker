@@ -13,7 +13,7 @@ export interface ReportStatusMeta {
 
 /**
  * Civic Flow status pills (dark emerald): REPORTED rose, ACKNOWLEDGED amber,
- * IN_PROGRESS amber, AWAITING_VERIFICATION violet (crew claims done, residents
+ * IN_PROGRESS amber, AWAITING_VERIFICATION violet (crew claims done, citizens
  * must confirm), RESOLVED emerald — 10% tint background + solid text.
  */
 export const REPORT_STATUS_META: Record<ReportStatus, ReportStatusMeta> = {
@@ -37,7 +37,7 @@ export const REPORT_STATUS_META: Record<ReportStatus, ReportStatusMeta> = {
   },
   AWAITING_VERIFICATION: {
     label: 'Awaiting verification',
-    description: 'The crew reports the repair done — residents now confirm it on site.',
+    description: 'The crew reports the repair done — citizens now confirm it on site.',
     badgeClassName: 'bg-violet-500/10 text-violet-300',
     dotClassName: 'bg-violet-400',
   },

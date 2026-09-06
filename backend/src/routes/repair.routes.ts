@@ -14,7 +14,7 @@ import { RepairEvidenceParamsSchema, RepairIdParamsSchema } from '../schemas/par
 /**
  * Mounted at /api/repairs. Evidence endpoints are for the assigned repairer
  * (ADMINs may claim jobs too — in small municipalities the admin IS the crew);
- * verification is open to any signed-in user (the resident gate lives in the
+ * verification is open to any signed-in user (the citizen gate lives in the
  * service).
  */
 export const repairsRouter = Router();

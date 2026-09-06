@@ -179,7 +179,7 @@ export class PotholesApi {
     return this.client.post<Repair>(path, input, (value) => RepairSchema.parse(value))
   }
 
-  /** Resident (or admin) verdict on the evidence. 409 once verification closes. */
+  /** Citizen (or admin) verdict on the evidence. 409 once verification closes. */
   verifyRepair(repairId: string, verdict: RepairVerdict, note?: string): Promise<Repair> {
     const body = RepairVerificationRequestSchema.parse({
       verdict,

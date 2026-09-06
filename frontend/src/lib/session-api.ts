@@ -18,7 +18,7 @@ import { apiClient, type ApiClient } from '@/lib/api'
  * `potholes-api.ts` (potholes are the primary entity).
  */
 
-/** What the user said they are on the login screen. */
+/** Which door the user entered through on the login screen. */
 export type LoginIntent = NonNullable<z.infer<typeof GoogleAuthRequestSchema>['intent']>
 export class SessionApi {
   private readonly client: ApiClient
@@ -29,9 +29,10 @@ export class SessionApi {
 
   /**
    * Exchange a GIS ID token for an httpOnly cookie session. `intent` is the
-   * login-screen choice (RESIDENT / MUNICIPALITY); the backend turns a
-   * non-allowlisted MUNICIPALITY attempt into a 403 with a friendly message —
-   * the intent never grants a role by itself.
+   * login-screen door (CITIZEN / MUNICIPALITY) and the door decides the session
+   * role: CITIZEN always yields a CITIZEN session, while MUNICIPALITY resolves
+   * the allowlist role and 403s with a friendly message for non-allowlisted
+   * accounts.
    */
   signInWithGoogle(credential: string, intent: LoginIntent): Promise<User> {
     const body = GoogleAuthRequestSchema.parse({ credential, intent })

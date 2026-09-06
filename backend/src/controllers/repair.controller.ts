@@ -53,7 +53,7 @@ export const addAfterPhoto: RequestHandler = asyncHandler(async (req, res) => {
   res.status(200).json(repair);
 });
 
-/** POST /api/repairs/:id/verify — resident verdict on the evidence. */
+/** POST /api/repairs/:id/verify — citizen verdict on the evidence. */
 export const verifyRepair: RequestHandler = asyncHandler(async (req, res) => {
   const actor = requireUser(req);
   const { id } = validated<{ id: string }>(req, 'params');
@@ -74,7 +74,7 @@ export const listRepairs: RequestHandler = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/repairs/:id/evidence/:stage/photo — 302 to a presigned GET of the
- * before/after evidence, for the resident verification card's comparison view.
+ * before/after evidence, for the citizen verification card's comparison view.
  * Any signed-in user: evidence is what citizens are asked to judge.
  */
 export const getRepairEvidencePhoto: RequestHandler = asyncHandler(async (req, res) => {

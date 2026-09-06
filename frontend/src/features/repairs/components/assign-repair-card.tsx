@@ -62,7 +62,7 @@ export function AssignRepairCard({ potholeHumanCode, onAssigned, className }: As
           <div className="space-y-1">
             <CardTitle className="font-heading text-headline-sm">Assign repair</CardTitle>
             <CardDescription>
-              Put a crew on this pothole. It is resolved once residents verify the repair — not
+              Put a crew on this pothole. It is resolved once citizens verify the repair — not
               before.
             </CardDescription>
           </div>

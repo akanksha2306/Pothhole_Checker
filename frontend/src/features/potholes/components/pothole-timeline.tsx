@@ -95,9 +95,9 @@ export function PotholeTimeline({ events, className }: PotholeTimelineProps) {
                 {event.type === 'REPAIRED' && 'Repaired'}
                 {event.type === 'REPAIR_ASSIGNED' && 'Repair assigned'}
                 {event.type === 'REPAIR_SUBMITTED' &&
-                  'Repair submitted — awaiting resident verification'}
+                  'Repair submitted — awaiting citizen verification'}
                 {event.type === 'REPAIR_VERIFIED' && 'Repair verified'}
-                {event.type === 'REOPENED' && 'Reopened — resident says not fixed'}
+                {event.type === 'REOPENED' && 'Reopened — citizen says not fixed'}
                 {event.type === 'STATUS_CHANGED' && (
                   <>
                     Status changed

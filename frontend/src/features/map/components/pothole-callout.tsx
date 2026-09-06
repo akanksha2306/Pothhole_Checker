@@ -55,7 +55,7 @@ export function PotholeCallout({
         <p className="text-label-md text-muted-foreground">
           Validated by{' '}
           <span className="font-semibold text-foreground">{pothole.reportCount}</span>{' '}
-          {pothole.reportCount === 1 ? 'resident' : 'residents'}
+          {pothole.reportCount === 1 ? 'citizen' : 'citizens'}
         </p>
         <Button asChild size="sm">
           <Link to={`/potholes/${pothole.humanCode}`}>

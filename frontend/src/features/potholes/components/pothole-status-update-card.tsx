@@ -128,7 +128,7 @@ export function PotholeStatusUpdateCard({
           </div>
 
           <p className="text-label-md text-muted-foreground">
-            1 pothole · {reportCount} {reportCount === 1 ? 'resident' : 'residents'} affected
+            1 pothole · {reportCount} {reportCount === 1 ? 'citizen' : 'citizens'} affected
           </p>
 
           {updateError && (

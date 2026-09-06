@@ -23,19 +23,19 @@ export const REPAIR_STATUS_META: Record<RepairStatus, RepairStatusMeta> = {
   },
   AWAITING_VERIFICATION: {
     label: 'Awaiting verification',
-    description: 'Crew says it is done — residents now confirm.',
+    description: 'Crew says it is done — citizens now confirm.',
     badgeClassName: 'bg-violet-500/10 text-violet-300',
     dotClassName: 'bg-violet-400',
   },
   VERIFIED_FIXED: {
     label: 'Verified fixed',
-    description: 'Residents confirmed the repair on site.',
+    description: 'Citizens confirmed the repair on site.',
     badgeClassName: 'bg-emerald-500/10 text-emerald-400',
     dotClassName: 'bg-emerald-500',
   },
   REOPENED: {
     label: 'Reopened',
-    description: 'Residents say it is not fixed — back to the crew.',
+    description: 'Citizens say it is not fixed — back to the crew.',
     badgeClassName: 'bg-rose-500/10 text-rose-400',
     dotClassName: 'bg-rose-500',
   },
