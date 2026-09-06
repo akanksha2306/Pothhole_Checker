@@ -2,15 +2,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import type { User } from 'shared'
 
-import { sessionApi } from '@/lib/session-api'
+import { sessionApi, type LoginIntent } from '@/lib/session-api'
 
 export type AuthStatus = 'loading' | 'authed' | 'anon'
 
 export interface AuthContextValue {
   user: User | null
   status: AuthStatus
-  /** Exchanges a GIS ID token for a session cookie and loads the user. */
-  signIn: (credential: string) => Promise<User>
+  /** Exchanges a GIS ID token + intent hint for a session cookie. */
+  signIn: (credential: string, intent: LoginIntent) => Promise<User>
   /** Clears the server session and local state (always ends up signed out). */
   signOut: () => Promise<void>
   /** Re-reads the session from GET /api/me. */
@@ -43,8 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refresh()
   }, [refresh])
 
-  const signIn = useCallback(async (credential: string) => {
-    const signedIn = await sessionApi.signInWithGoogle(credential)
+  const signIn = useCallback(async (credential: string, intent: LoginIntent) => {
+    const signedIn = await sessionApi.signInWithGoogle(credential, intent)
     setUser(signedIn)
     setStatus('authed')
     return signedIn

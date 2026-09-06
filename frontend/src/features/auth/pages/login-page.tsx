@@ -1,4 +1,4 @@
-import { LoaderCircle, MapPin, ShieldCheck } from 'lucide-react'
+import { LoaderCircle, MapPin, ShieldCheck, User } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { FullPageLoader } from '@/components/molecules/full-page-loader'
@@ -11,13 +11,32 @@ import {
   renderGoogleSignInButton,
 } from '@/lib/auth'
 import { isApiError } from '@/lib/api'
+import type { LoginIntent } from '@/lib/session-api'
+import { cn } from '@/lib/utils'
 
 type GisState = 'loading' | 'ready' | 'unconfigured' | 'failed'
 
 const VALUE_PROPS = [
   'Snap the pothole — camera and GPS are attached automatically.',
   'Track every report from reported to repaired.',
-  'Municipal admins triage and close reports in one dashboard.',
+  'Municipal crews work from the same evidence trail.',
+] as const
+
+const LOGIN_OPTIONS = [
+  {
+    intent: 'RESIDENT' as LoginIntent,
+    title: "I'm a resident",
+    sub: 'Report potholes and track repairs in your area',
+    icon: User,
+    tone: 'bg-primary/10 text-primary',
+  },
+  {
+    intent: 'MUNICIPALITY' as LoginIntent,
+    title: 'I work for the municipality',
+    sub: 'Assign repairs and verify on-site evidence',
+    icon: ShieldCheck,
+    tone: 'bg-amber-500/15 text-amber-400',
+  },
 ] as const
 
 /**
@@ -31,28 +50,38 @@ export function LoginPage() {
   const [gisState, setGisState] = useState<GisState>(configured ? 'loading' : 'unconfigured')
   const [signingIn, setSigningIn] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [intent, setIntent] = useState<LoginIntent | null>(null)
   const buttonContainerRef = useRef<HTMLDivElement | null>(null)
 
   const handleCredential = useCallback(
     async (credential: string) => {
+      // The selection is required before sign-in, so this is always set here.
+      if (!intent) return
+
       setSigningIn(true)
       setNotice(null)
       try {
-        await signIn(credential)
-        // RedirectIfAuthenticated picks up the new session and routes by role.
+        await signIn(credential, intent)
+        // RedirectIfAuthenticated picks up the session and routes by the role
+        // the server resolved from its allowlist — not from this intent.
       } catch (error: unknown) {
-        setNotice(
-          isApiError(error)
-            ? error.message
-            : error instanceof GoogleSignInError || error instanceof Error
+        if (isApiError(error) && error.status === 403) {
+          // Municipal gate: show the server's message and drop the user back to
+          // the resident door so the retry is one tap.
+          setNotice(error.message)
+          setIntent('RESIDENT')
+        } else {
+          setNotice(
+            error instanceof GoogleSignInError || error instanceof Error
               ? error.message
               : 'Sign-in failed.',
-        )
+          )
+        }
       } finally {
         setSigningIn(false)
       }
     },
-    [signIn],
+    [signIn, intent],
   )
 
   useEffect(() => {
@@ -66,11 +95,9 @@ export function LoginPage() {
 
     loadGoogleIdentityServices()
       .then(() => {
-        const container = buttonContainerRef.current
-        if (cancelled || !container) {
+        if (cancelled) {
           return
         }
-        renderGoogleSignInButton(container, { onCredential: (credential) => void handleCredential(credential) })
         setGisState('ready')
       })
       .catch((error: unknown) => {
@@ -84,7 +111,18 @@ export function LoginPage() {
     return () => {
       cancelled = true
     }
-  }, [configured, handleCredential])
+  }, [configured])
+
+  // Render Google's button once the script is up AND the user picked a door.
+  useEffect(() => {
+    const container = buttonContainerRef.current
+    if (gisState !== 'ready' || !intent || !container) {
+      return
+    }
+    renderGoogleSignInButton(container, {
+      onCredential: (credential) => void handleCredential(credential),
+    })
+  }, [gisState, intent, handleCredential])
 
   if (status === 'loading') {
     return <FullPageLoader label="Checking your session…" />
@@ -122,12 +160,70 @@ export function LoginPage() {
           ))}
         </ul>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* Two doors. The choice is an intent hint for the backend, never a
+              role grant — the allowlist decides what an account really is. */}
+          <div role="radiogroup" aria-label="Who are you signing in as?" className="grid gap-3">
+            {LOGIN_OPTIONS.map((option) => {
+              const isSelected = intent === option.intent
+              const Icon = option.icon
+              return (
+                <button
+                  key={option.intent}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  disabled={signingIn}
+                  onClick={() => {
+                    setIntent(option.intent)
+                    if (notice) setNotice(null)
+                  }}
+                  className={cn(
+                    'flex items-start gap-3 rounded-lg border bg-card px-4 py-3.5 text-left shadow-card transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                    isSelected
+                      ? 'border-primary ring-2 ring-primary/30'
+                      : 'border-border hover:border-muted-foreground/40 hover:bg-accent',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'flex size-10 shrink-0 items-center justify-center rounded-full',
+                      isSelected ? option.tone : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    <Icon className="size-5" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 space-y-0.5">
+                    <span className="block text-body-lg font-semibold text-foreground">
+                      {option.title}
+                    </span>
+                    <span className="block text-body-md text-muted-foreground">{option.sub}</span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'ml-auto mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border',
+                      isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/40',
+                    )}
+                  >
+                    {isSelected && <span className="size-2 rounded-full bg-primary-foreground" />}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {!intent && (
+            <p className="text-label-md text-muted-foreground">
+              Choose how you&apos;re signing in to continue.
+            </p>
+          )}
+
           {/* React renders its states and Google's button as SIBLINGS: the ref
               node is handed to renderButton() empty and GIS mutates its children
               afterwards. React-owned nodes inside it would crash the reconciler
               (removeChild NotFoundError) when Google wipes them. */}
-          {gisState === 'unconfigured' && (
+          {gisState === 'unconfigured' && intent && (
             <div className="flex min-h-12 items-center justify-center">
               <Button disabled size="lg" className="w-full">
                 <ShieldCheck className="size-5" aria-hidden="true" />
@@ -135,7 +231,7 @@ export function LoginPage() {
               </Button>
             </div>
           )}
-          {gisState === 'loading' && (
+          {gisState === 'loading' && intent && (
             <div className="flex min-h-12 items-center justify-center">
               <span className="flex items-center gap-2 text-body-md text-muted-foreground">
                 <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
@@ -143,7 +239,15 @@ export function LoginPage() {
               </span>
             </div>
           )}
-          <div ref={buttonContainerRef} className="flex w-full justify-center" />
+          {gisState === 'ready' && intent && (
+            <div ref={buttonContainerRef} className="flex w-full justify-center" />
+          )}
+
+          {!intent && (
+            <Button disabled size="lg" className="w-full">
+              Continue with Google
+            </Button>
+          )}
 
           {signingIn && (
             <p

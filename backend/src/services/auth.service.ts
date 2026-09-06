@@ -8,9 +8,9 @@
  */
 import { OAuth2Client, type TokenPayload } from 'google-auth-library';
 import type { PrismaClient, User as PrismaUser } from '@prisma/client';
-import type { Role } from 'shared';
+import type { LoginIntent, Role } from 'shared';
 import { env, roleForEmail } from '../lib/env.js';
-import { UnauthorizedError } from '../lib/errors.js';
+import { ForbiddenError, UnauthorizedError } from '../lib/errors.js';
 import { prisma } from '../lib/prisma.js';
 
 /** Verified claims we need from the Google ID token. */
@@ -24,6 +24,17 @@ interface VerifiedGoogleUser {
 /** Strips anything JWT-shaped before an error string reaches the logs. */
 function redactTokens(value: string): string {
   return value.replace(/eyJ[\w-]+\.[\w-]+\.[\w-]+/g, '<redacted>');
+}
+
+/**
+ * Login-intent gate, enforced server-side (the UI's Resident/Municipality choice
+ * is never trusted). MUNICIPALITY intent requires an allowlisted municipal role;
+ * a rejected login must not create any rows or issue a session.
+ */
+export function assertIntentAllowsRole(intent: LoginIntent, role: Role): void {
+  if (intent === 'MUNICIPALITY' && role !== 'ADMIN' && role !== 'REPAIRER') {
+    throw new ForbiddenError("This account doesn't have municipal access — sign in as a resident instead");
+  }
 }
 
 export class AuthService {
@@ -40,9 +51,11 @@ export class AuthService {
    * Verifies the credential, applies the allowlist, and upserts the user.
    * Returns the DB user; the caller turns it into a session.
    */
-  async loginWithGoogleCredential(credential: string): Promise<PrismaUser> {
+  async loginWithGoogleCredential(credential: string, intent: LoginIntent = 'RESIDENT'): Promise<PrismaUser> {
     const googleUser = await this.verifyGoogleCredential(credential);
     const role: Role = roleForEmail(googleUser.email);
+    // Before any upsert: a rejected login must not create rows or a session.
+    assertIntentAllowsRole(intent, role);
 
     return this.db.user.upsert({
       where: { googleId: googleUser.sub },

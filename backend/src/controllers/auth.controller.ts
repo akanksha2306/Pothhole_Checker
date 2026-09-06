@@ -13,8 +13,8 @@ import { authService } from '../services/auth.service.js';
 
 /** POST /api/auth/google — verify the GIS ID token, set the session cookie. */
 export const googleAuth: RequestHandler = asyncHandler(async (req, res) => {
-  const { credential } = validated<GoogleAuthRequest>(req, 'body');
-  const user = await authService.loginWithGoogleCredential(credential);
+  const { credential, intent } = validated<GoogleAuthRequest>(req, 'body');
+  const user = await authService.loginWithGoogleCredential(credential, intent);
 
   const token = signSessionToken({ sub: user.id, email: user.email, role: user.role });
   res

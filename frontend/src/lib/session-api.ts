@@ -8,6 +8,8 @@ import {
   type User,
 } from 'shared'
 
+import type { z } from 'zod'
+
 import { apiClient, type ApiClient } from '@/lib/api'
 
 /**
@@ -15,6 +17,9 @@ import { apiClient, type ApiClient } from '@/lib/api'
  * presigned photo upload. Report and pothole endpoints live in
  * `potholes-api.ts` (potholes are the primary entity).
  */
+
+/** What the user said they are on the login screen. */
+export type LoginIntent = NonNullable<z.infer<typeof GoogleAuthRequestSchema>['intent']>
 export class SessionApi {
   private readonly client: ApiClient
 
@@ -22,9 +27,14 @@ export class SessionApi {
     this.client = client
   }
 
-  /** Exchange a GIS ID token for an httpOnly cookie session. */
-  signInWithGoogle(credential: string): Promise<User> {
-    const body = GoogleAuthRequestSchema.parse({ credential })
+  /**
+   * Exchange a GIS ID token for an httpOnly cookie session. `intent` is the
+   * login-screen choice (RESIDENT / MUNICIPALITY); the backend turns a
+   * non-allowlisted MUNICIPALITY attempt into a 403 with a friendly message —
+   * the intent never grants a role by itself.
+   */
+  signInWithGoogle(credential: string, intent: LoginIntent): Promise<User> {
+    const body = GoogleAuthRequestSchema.parse({ credential, intent })
     return this.client.post<User>('/auth/google', body, (value) => UserSchema.parse(value))
   }
 
