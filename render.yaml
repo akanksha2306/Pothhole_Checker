@@ -21,7 +21,7 @@ services:
       - key: ADMIN_EMAILS
         value: kanjoliaakanksha@gmail.com,Unnati@naum.systems
       - key: REPAIRER_EMAILS
-        value: kanjoliaakanksha@gmail.com,Unnati@naum.systems
+        value: kanjoliaakanksha@gmail.com
       - key: R2_ACCOUNT_ID
         sync: false
       - key: R2_ACCESS_KEY_ID
