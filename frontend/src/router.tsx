@@ -1,46 +1,74 @@
-import { lazy } from 'react'
+import { lazy, type ComponentType } from 'react'
 import { Navigate, createBrowserRouter } from 'react-router'
 
 import { PageShell } from '@/components/layout/page-shell'
 import { RouteErrorScreen } from '@/components/layout/route-error'
 import { RedirectIfAuthenticated, RequireAdmin, RequireAuth } from '@/features/auth/guards'
 
+/** sessionStorage flag guarding the reload below against loops. */
+const RELOAD_FLAG = 'pw:reloaded-for-new-build'
+
+/**
+ * A deploy replaces every chunk's hash, so a tab left open across a deploy
+ * fails its next lazy import ("Failed to fetch dynamically imported module").
+ * One clean reload picks up the fresh build — the service worker has already
+ * activated it — and the flag stops a second reload if that build is broken.
+ */
+function lazyRetry<T extends ComponentType<unknown>>(
+  load: () => Promise<{ default: T }>,
+): ReturnType<typeof lazy> {
+  return lazy(() =>
+    load()
+      .then((mod) => {
+        sessionStorage.removeItem(RELOAD_FLAG)
+        return mod
+      })
+      .catch((error: unknown) => {
+        if (sessionStorage.getItem(RELOAD_FLAG)) throw error
+        sessionStorage.setItem(RELOAD_FLAG, '1')
+        window.location.reload()
+        // Never resolves: the reload takes over the document.
+        return new Promise<{ default: T }>(() => {})
+      }),
+  )
+}
+
 /**
  * Route components are lazy-loaded: the login screen ships without the report
  * form, map code stays out of every other chunk, and citizens never download
  * the admin console.
  */
-const LoginPage = lazy(() =>
+const LoginPage = lazyRetry(() =>
   import('@/features/auth/pages/login-page').then((m) => ({ default: m.LoginPage })),
 )
-const MapHomePage = lazy(() =>
+const MapHomePage = lazyRetry(() =>
   import('@/features/map/pages/map-home-page').then((m) => ({ default: m.MapHomePage })),
 )
-const PotholeListPage = lazy(() =>
+const PotholeListPage = lazyRetry(() =>
   import('@/features/potholes/pages/pothole-list-page').then((m) => ({
     default: m.PotholeListPage,
   })),
 )
-const PotholeDetailPage = lazy(() =>
+const PotholeDetailPage = lazyRetry(() =>
   import('@/features/potholes/pages/pothole-detail-page').then((m) => ({
     default: m.PotholeDetailPage,
   })),
 )
-const CommunityPage = lazy(() =>
+const CommunityPage = lazyRetry(() =>
   import('@/features/community/pages/community-page').then((m) => ({ default: m.CommunityPage })),
 )
-const NewReportPage = lazy(() =>
+const NewReportPage = lazyRetry(() =>
   import('@/features/reports/pages/new-report-page').then((m) => ({ default: m.NewReportPage })),
 )
-const MyReportsPage = lazy(() =>
+const MyReportsPage = lazyRetry(() =>
   import('@/features/reports/pages/my-reports-page').then((m) => ({ default: m.MyReportsPage })),
 )
-const AdminDashboardPage = lazy(() =>
+const AdminDashboardPage = lazyRetry(() =>
   import('@/features/admin/pages/admin-dashboard-page').then((m) => ({
     default: m.AdminDashboardPage,
   })),
 )
-const AdminPotholeDetailPage = lazy(() =>
+const AdminPotholeDetailPage = lazyRetry(() =>
   import('@/features/admin/pages/admin-pothole-detail-page').then((m) => ({
     default: m.AdminPotholeDetailPage,
   })),
