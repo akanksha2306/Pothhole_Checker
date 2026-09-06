@@ -57,9 +57,18 @@ export async function uploadReportPhoto(file: File): Promise<{ key: string }> {
       headers: { 'Content-Type': contentType },
       body: file,
     })
-  } catch {
+  } catch (error: unknown) {
     // CORS/network reject on the direct PUT — relay through our backend.
-    return sessionApi.uploadPhotoDirect(file, contentType)
+    console.warn('[upload] direct PUT rejected, falling back to relay:', error)
+    try {
+      return await sessionApi.uploadPhotoDirect(file, contentType)
+    } catch (relayError: unknown) {
+      console.error('[upload] relay also failed:', relayError)
+      // Never surface a raw browser TypeError; both legs are dead, so this is
+      // genuinely a reachability problem.
+      if (isApiError(relayError)) throw relayError
+      throw new NetworkError(relayError)
+    }
   }
 
   if (!putResponse.ok) {
