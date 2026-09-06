@@ -73,6 +73,27 @@ export class StorageService {
   }
 
   /**
+   * Server-side upload relay: the client POSTs the raw bytes to us (same-origin,
+   * so no storage CORS is involved) and we PUT them to R2 with our credentials.
+   * Fallback path for deployments where the bucket's CORS does not (yet) allow
+   * the app origin for direct browser PUTs.
+   */
+  async uploadPhoto(userId: string, contentType: PhotoContentType, bytes: Uint8Array): Promise<{ key: string }> {
+    const client = this.ensureClient();
+    const key = this.buildPhotoKey(userId, contentType);
+
+    try {
+      await client.send(
+        new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType, Body: bytes }),
+      );
+      return { key };
+    } catch (error) {
+      console.error('[storage] relayed upload failed:', error instanceof Error ? error.message : error);
+      throw new ServiceUnavailableError('Could not store the photo');
+    }
+  }
+
+  /**
    * Confirms a `photoKey` really refers to an uploaded object. Callers skip this
    * when storage is unconfigured (placeholder env). The error thrown for a
    * missing object is caller-supplied because the semantics differ: a client

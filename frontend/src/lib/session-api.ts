@@ -1,9 +1,11 @@
 import {
   GoogleAuthRequestSchema,
   OkResponseSchema,
+  PhotoDirectUploadResponseSchema,
   PhotoUploadRequestSchema,
   PhotoUploadUrlResponseSchema,
   UserSchema,
+  type PhotoDirectUploadResponse,
   type PhotoUploadUrlResponse,
   type User,
 } from 'shared'
@@ -58,6 +60,22 @@ export class SessionApi {
     const body = PhotoUploadRequestSchema.parse({ contentType })
     return this.client.post<PhotoUploadUrlResponse>('/uploads/photo', body, (value) =>
       PhotoUploadUrlResponseSchema.parse(value),
+    )
+  }
+
+  /**
+   * Fallback when storage CORS blocks the direct PUT: POST the raw file to the
+   * backend same-origin and let it relay the bytes with its own credentials.
+   */
+  uploadPhotoDirect(file: File, contentType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic'): Promise<PhotoDirectUploadResponse> {
+    return this.client.request<PhotoDirectUploadResponse>(
+      '/uploads/photo-direct',
+      {
+        method: 'POST',
+        body: file,
+        headers: { 'Content-Type': contentType },
+      },
+      (value) => PhotoDirectUploadResponseSchema.parse(value),
     )
   }
 

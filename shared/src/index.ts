@@ -395,6 +395,13 @@ export const PhotoUploadUrlResponseSchema = z.object({
 });
 export type PhotoUploadUrlResponse = z.infer<typeof PhotoUploadUrlResponseSchema>;
 
+/** Response of POST /api/uploads/photo-direct — the backend relayed the bytes. */
+export const PhotoDirectUploadResponseSchema = z.object({
+  /** Object key to send as `photoKey` when creating the report. */
+  key: z.string().min(1),
+});
+export type PhotoDirectUploadResponse = z.infer<typeof PhotoDirectUploadResponseSchema>;
+
 /** MIME types accepted for report photos (also the `<input accept>` list). */
 export const PhotoContentTypeEnum = z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
 export type PhotoContentType = z.infer<typeof PhotoContentTypeEnum>;

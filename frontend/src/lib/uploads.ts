@@ -29,8 +29,12 @@ export function describePhotoContentType(contentType: string): string {
  * Two-step upload: presigned URL from our backend, then a raw PUT of the file
  * to storage. The presigned signature pins the content type, so the PUT header
  * must repeat exactly what we asked for.
+ *
+ * When storage CORS blocks the direct PUT (the bucket allowlist not yet
+ * covering this origin), we fall back to the same-origin relay — the backend
+ * stores the bytes with its own credentials — so upload works everywhere.
  */
-export async function uploadReportPhoto(file: File): Promise<PhotoUploadUrlResponse> {
+export async function uploadReportPhoto(file: File): Promise<{ key: string }> {
   if (!sessionApi.isSupportedContentType(file.type)) {
     throw new PhotoUploadError(
       `“${describePhotoContentType(file.type)}” is not a supported photo format. Use a JPEG, PNG or WebP image.`,
@@ -53,8 +57,9 @@ export async function uploadReportPhoto(file: File): Promise<PhotoUploadUrlRespo
       headers: { 'Content-Type': contentType },
       body: file,
     })
-  } catch (error: unknown) {
-    throw new NetworkError(error)
+  } catch {
+    // CORS/network reject on the direct PUT — relay through our backend.
+    return sessionApi.uploadPhotoDirect(file, contentType)
   }
 
   if (!putResponse.ok) {
