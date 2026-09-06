@@ -4,7 +4,9 @@ services:
     runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm install && npx prisma generate && npm run build
+    # --include=dev: NODE_ENV=production makes npm skip devDependencies (@types/node,
+    # typescript) which the build needs. shared must build first (backend imports it).
+    buildCommand: npm install --include=dev && npm run build -w shared && npx prisma generate && npm run build
     startCommand: node dist/index.js
     healthCheckPath: /api/health
     envVars:
