@@ -34,16 +34,17 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
   next();
 };
 
-/** 403 FORBIDDEN when the session role does not match. Must run after requireAuth. */
-export function requireRole(role: Role): RequestHandler {
+/** 403 FORBIDDEN when the session role matches none of the allowed roles.
+ *  Must run after requireAuth. */
+export function requireRole(...roles: Role[]): RequestHandler {
   return (req, _res, next) => {
     const user = req.user;
     if (!user) {
       next(new UnauthorizedError('Authentication required'));
       return;
     }
-    if (user.role !== role) {
-      next(new ForbiddenError(`${role} access required`));
+    if (!roles.includes(user.role)) {
+      next(new ForbiddenError(`${roles.join(' or ')} access required`));
       return;
     }
     next();

@@ -12,23 +12,32 @@ import { validate } from '../middleware/validate.js';
 import { RepairEvidenceParamsSchema, RepairIdParamsSchema } from '../schemas/params.js';
 
 /**
- * Mounted at /api/repairs. Evidence endpoints are REPAIRER-only; verification is
- * open to any signed-in user (the resident gate lives in the service).
+ * Mounted at /api/repairs. Evidence endpoints are for the assigned repairer
+ * (ADMINs may claim jobs too — in small municipalities the admin IS the crew);
+ * verification is open to any signed-in user (the resident gate lives in the
+ * service).
  */
 export const repairsRouter = Router();
 
-repairsRouter.post('/:id/pickup', requireAuth, requireRole('REPAIRER'), validate({ params: RepairIdParamsSchema }), pickupRepair);
+// Small-municipality reality: the admin is often the crew, so admins can claim jobs.
+repairsRouter.post(
+  '/:id/pickup',
+  requireAuth,
+  requireRole('REPAIRER', 'ADMIN'),
+  validate({ params: RepairIdParamsSchema }),
+  pickupRepair,
+);
 repairsRouter.post(
   '/:id/before-photo',
   requireAuth,
-  requireRole('REPAIRER'),
+  requireRole('REPAIRER', 'ADMIN'),
   validate({ params: RepairIdParamsSchema, body: RepairEvidenceUploadSchema }),
   addBeforePhoto,
 );
 repairsRouter.post(
   '/:id/after-photo',
   requireAuth,
-  requireRole('REPAIRER'),
+  requireRole('REPAIRER', 'ADMIN'),
   validate({ params: RepairIdParamsSchema, body: RepairEvidenceUploadSchema }),
   addAfterPhoto,
 );

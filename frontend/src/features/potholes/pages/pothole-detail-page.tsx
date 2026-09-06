@@ -5,7 +5,7 @@ import { FullPageLoader } from '@/components/molecules/full-page-loader'
 import { StatusBadge } from '@/components/molecules/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { useAuth } from '@/features/auth/auth-provider'
+import { canActAsRepairer, useAuth } from '@/features/auth/auth-provider'
 import { PotholeStatusUpdateCard } from '@/features/potholes/components/pothole-status-update-card'
 import { ReportHistoryCard } from '@/features/potholes/components/report-history-card'
 import { PotholeTimeline } from '@/features/potholes/components/pothole-timeline'
@@ -106,7 +106,7 @@ export function PotholeDetailPage() {
 
       <p className="text-body-md text-muted-foreground">{meta.description}</p>
 
-      {user?.role === 'REPAIRER' && (
+      {canActAsRepairer(user) && (
         openRepair ? (
           <RepairStepper potholeHumanCode={pothole.humanCode} repair={openRepair} />
         ) : (

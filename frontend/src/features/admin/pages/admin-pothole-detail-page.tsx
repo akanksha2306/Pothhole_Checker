@@ -1,7 +1,7 @@
 import { ChevronLeft } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 
-import { useAuth } from '@/features/auth/auth-provider'
+import { canActAsRepairer, useAuth } from '@/features/auth/auth-provider'
 import { FullPageLoader } from '@/components/molecules/full-page-loader'
 import { ReporterIdentity } from '@/features/reports/molecules/reporter-identity'
 import { StatusBadge } from '@/components/molecules/status-badge'
@@ -124,7 +124,7 @@ export function AdminPotholeDetailPage() {
 
       <AssignRepairCard potholeHumanCode={pothole.humanCode} />
 
-      {openRepair && user?.role === 'REPAIRER' && (
+      {openRepair && canActAsRepairer(user) && (
         <RepairStepper potholeHumanCode={pothole.humanCode} repair={openRepair} />
       )}
 

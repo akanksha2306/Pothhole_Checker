@@ -79,3 +79,12 @@ export function useAuth(): AuthContextValue {
 export function roleHomePath(user: User | null): string {
   return user?.role === 'ADMIN' ? '/admin' : '/reports'
 }
+
+/**
+ * Repair-evidence actions (pickup, before/after photos) belong to the crew, and
+ * admins act as the crew too — many admin accounts sit on both allowlists, and
+ * the pickup endpoint accepts both roles.
+ */
+export function canActAsRepairer(user: Pick<User, 'role'> | null | undefined): boolean {
+  return user?.role === 'REPAIRER' || user?.role === 'ADMIN'
+}
