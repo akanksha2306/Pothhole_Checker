@@ -17,6 +17,36 @@
 
 Every pothole gets a permanent ID (`#BLR-00001`), a status, report/upvote counts, and a full timeline: *first reported → repaired → reported again → verified*.
 
+## The flow, end to end
+
+```
+🟢 CITIZEN (login: "I'm a resident")
+   └── Report: photo + GPS + description
+         ├── same pothole within 20 m?  → YES, SAME POTHOLE (joins it)
+         └── potholes within 2 km?      → upvote the existing one
+              🔴 REPORTED
+                  │
+🟠 ADMIN (login: "I work for the municipality")
+   └── Assign repair ──────────┐
+                              🟠 IN_PROGRESS
+                                  │
+🟠 ADMIN (acts as the crew)       │
+   └── Start repair               │
+       ├── 📸 before photo  (GPS ≤ 25 m of the pothole, required)
+       ├── do the fix
+       └── 📸 after photo   (GPS ≤ 25 m, must be newer)
+              🟣 AWAITING VERIFICATION
+                  │
+🟢 CITIZEN (a resident who reported it)
+   └── "Did this actually get fixed?"
+         ├── ✅ Yes, it's fixed  → ✅ RESOLVED  (REPAIRS +1, "Verified by resident")
+         └── ❌ No, still broken → 🔴 REOPENED  (back to the queue)
+
+Rules that keep it honest: nobody marks a pothole fixed directly; repair
+evidence must be captured on-site (GPS-gated); the crew cannot verify its
+own repair; every step lands on the pothole's permanent timeline.
+```
+
 ## Features
 
 - 🔐 **Google sign-in** only (GIS ID token → httpOnly cookie session) — roles: Citizen, Repairer, Admin (email allowlists)
