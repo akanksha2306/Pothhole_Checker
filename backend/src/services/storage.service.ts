@@ -144,6 +144,10 @@ export class StorageService {
       this.s3 = new S3Client({
         region: 'auto',
         endpoint: r2Endpoint(),
+        // Cloudflare R2 has no certificate for <bucket>.<account>.r2… virtual-host
+        // addressing — the SDK must keep the bucket in the PATH instead, or every
+        // PUT (presigned or relayed) dies with ERR_SSL_VERSION_OR_CIPHER_MISMATCH.
+        forcePathStyle: true,
         credentials: {
           accessKeyId: env.R2_ACCESS_KEY_ID,
           secretAccessKey: env.R2_SECRET_ACCESS_KEY,
