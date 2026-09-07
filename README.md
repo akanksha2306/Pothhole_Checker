@@ -1,12 +1,18 @@
 # PotholeWatch 🕳️
 
+**Live:** **https://pothhole-checker-frontend.vercel.app** · API: https://pothholewatch-api.onrender.com/api/health · [Discovery PRD](docs/discovery-prd.md)
+
 **Citizen-powered pothole reporting with proof.** Report a pothole with a photo and GPS, find out someone already did, upvote it instead of duplicating — and make sure every "fixed" claim is verified by a citizen before it counts.
 
 > **The core idea:** users create reports; **locations create potholes.** One pothole, many reports, one verified repair — instead of ten identical complaints.
 
-| Map home | Report flow | Pothole history |
+| Login doors | Map home | Report flow |
 |---|---|---|
-| ![Map](docs/img/map.png) | ![Report](docs/img/report.png) | ![History](docs/img/pothole-detail.png) |
+| ![Citizen door](docs/img/login-citizen.png) | ![Map](docs/img/map.png) | ![Report](docs/img/report.png) |
+
+| Pothole timeline | Potholes list | Admin console |
+|---|---|---|
+| ![Timeline](docs/img/pothole-detail.png) | ![List](docs/img/potholes-list.png) | ![Admin](docs/img/admin.png) |
 
 ## How it works
 
@@ -41,6 +47,10 @@ Every pothole gets a permanent ID (`#BLR-00001`), a status, report/upvote counts
    └── "Did this actually get fixed?"
          ├── ✅ Yes, it's fixed  → ✅ RESOLVED  (REPAIRS +1, "Verified by citizen")
          └── ❌ No, still broken → 🔴 REOPENED  (back to the queue)
+
+🔁 A repaired pothole reported again? Status honestly flips back to
+   REPORTED with a REPORTED_AGAIN event — the verified repair stays on
+   the permanent timeline. Never "came back"; it was re-asserted.
 
 Rules that keep it honest: nobody marks a pothole fixed directly; repair
 evidence must be captured on-site (GPS-gated); the crew cannot verify its

@@ -8,6 +8,7 @@
     "shared"
   ],
   "scripts": {
+    "dev": "bash scripts/dev.sh",
     "dev:frontend": "npm run dev --workspace frontend",
     "dev:backend": "npm run dev --workspace backend",
     "build:shared": "npm run build --workspace shared",
