@@ -7,9 +7,11 @@
  * Caching policy:
  * - App shell + build assets: workbox precache (revisioned, refreshed on deploy).
  * - SPA navigations: always served the precached `index.html`.
- * - Everything else same-origin, plus Google Fonts: cache-first, exactly the
- *   behaviour the hand-written worker had (`cached || fetch`), with runtime
+ * - Same-origin static assets and Google Fonts: cache-first, with runtime
  *   population for entries that were not precached.
+ * - `/api/*`: NEVER cached. API responses are live data (potholes, session);
+ *   caching them serves deleted rows as ghosts and stale sessions. They pass
+ *   straight through to the network.
  */
 
 import { clientsClaim } from 'workbox-core'
@@ -24,7 +26,7 @@ import { NavigationRoute, registerRoute } from 'workbox-routing'
 // is loaded as a service worker, so narrow it to the real scope.
 declare const self: ServiceWorkerGlobalScope
 
-const CACHE_NAME = 'potholewatch-v1'
+const CACHE_NAME = 'potholewatch-runtime-v2'
 const FONT_CACHE_NAME = 'potholewatch-fonts-v1'
 
 /** Precached document served for every SPA navigation. */
@@ -54,11 +56,13 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      // Drop our own legacy caches (e.g. 'potholewatch-v0') that precache does not own.
+      // Drop every cache we no longer own — including 'potholewatch-v1', whose
+      // runtime half was poisoned with cached /api responses (ghost rows).
+      const keep = new Set([CACHE_NAME, FONT_CACHE_NAME])
       const cacheNames = await caches.keys()
       await Promise.all(
         cacheNames
-          .filter((name) => name.startsWith('potholewatch-') && !name.endsWith('-v1'))
+          .filter((name) => name.startsWith('potholewatch-') && !keep.has(name))
           .map((name) => caches.delete(name)),
       )
     })(),
@@ -77,10 +81,11 @@ clientsClaim()
 // 2. Client-side routes have no server-side counterpart: serve the shell.
 registerRoute(new NavigationRoute(createHandlerBoundToURL(APP_SHELL_URL)))
 
-// 3. Cache-first for same-origin assets and Google Fonts.
+// 3. Cache-first for same-origin static assets and Google Fonts — never /api.
 registerRoute(
   ({ request, url }) =>
     request.method === 'GET' &&
+    !url.pathname.startsWith('/api/') &&
     (url.origin === self.location.origin || FONT_HOSTNAMES.has(url.hostname)),
   async ({ request }) => {
     const cacheName = FONT_HOSTNAMES.has(new URL(request.url).hostname)
