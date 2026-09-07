@@ -50,6 +50,14 @@ export async function uploadReportPhoto(file: File): Promise<{ key: string }> {
     throw new NetworkError(error)
   }
 
+  // Relay first: same-origin and independent of storage CORS. Direct presigned
+  // PUT stays as the fallback for oversized files the relay caps.
+  try {
+    return await sessionApi.uploadPhotoDirect(file, contentType)
+  } catch (relayError: unknown) {
+    console.warn('[upload] relay failed, trying direct presigned PUT:', relayError)
+  }
+
   let putResponse: Response
   try {
     putResponse = await fetch(upload.uploadUrl, {
@@ -58,17 +66,10 @@ export async function uploadReportPhoto(file: File): Promise<{ key: string }> {
       body: file,
     })
   } catch (error: unknown) {
-    // CORS/network reject on the direct PUT — relay through our backend.
-    console.warn('[upload] direct PUT rejected, falling back to relay:', error)
-    try {
-      return await sessionApi.uploadPhotoDirect(file, contentType)
-    } catch (relayError: unknown) {
-      console.error('[upload] relay also failed:', relayError)
-      // Never surface a raw browser TypeError; both legs are dead, so this is
-      // genuinely a reachability problem.
-      if (isApiError(relayError)) throw relayError
-      throw new NetworkError(relayError)
-    }
+    console.error('[upload] direct PUT rejected too:', error)
+    // Never surface a raw browser TypeError; both legs are dead, so this is
+    // genuinely a reachability problem.
+    throw new NetworkError(error)
   }
 
   if (!putResponse.ok) {
